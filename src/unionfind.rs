@@ -26,7 +26,7 @@ impl UnionFind {
         }
     }
 
-    fn unit(&mut self, x: usize, y: usize) {
+    fn unite(&mut self, x: usize, y: usize) {
         let px = self.root(x);
         let py = self.root(y);
         if px == py {
