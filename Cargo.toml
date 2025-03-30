@@ -1,0 +1,17 @@
+[package]
+name = "atcoder-rust"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+ac-library-rs = "0.1.1"
+itertools = "0.12.1"
+ndarray = "0.15.6"
+num = "0.4.3"
+proconio = { version = "0.4.5", features = ["derive"] }
+pathfinding = "4.3.0"
+permutohedron = "0.2.4"
+indexing = "0.4.1"
+superslice = "1.0.0"
+petgraph = "0.6.5"
