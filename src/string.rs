@@ -10,3 +10,31 @@ pub fn contains_palindrome(s: String, k: usize) -> bool {
 pub fn is_palindrome(s: &str) -> bool {
     s.chars().eq(s.chars().rev())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case("", true)]
+    #[case("a", true)]
+    #[case("aba", true)]
+    #[case("abba", true)]
+    #[case("abc", false)]
+    #[case("ab", false)]
+    fn is_palindrome_cases(#[case] s: &str, #[case] expected: bool) {
+        assert_eq!(is_palindrome(s), expected);
+    }
+
+    // 長さ k の回文部分文字列を含むか
+    #[rstest]
+    #[case("abacaba", 3, true)] // "aba" など
+    #[case("abc", 3, false)]
+    #[case("abc", 1, true)] // 長さ1は常に回文
+    #[case("abccba", 2, true)] // "cc"
+    #[case("abcdef", 2, false)]
+    fn contains_palindrome_cases(#[case] s: &str, #[case] k: usize, #[case] expected: bool) {
+        assert_eq!(contains_palindrome(s.to_string(), k), expected);
+    }
+}

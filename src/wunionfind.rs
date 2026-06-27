@@ -65,3 +65,53 @@ where
         self.diff_weight[x]
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    #[test]
+    fn diff_within_same_group() {
+        // weight(y) - weight(x) = w となるように unite(x, y, w)
+        let mut uf = WeightedUnionFind::new(5, 0i64);
+        uf.unite(0, 1, 3); // 1 は 0 より 3 大きい
+        uf.unite(1, 2, 5); // 2 は 1 より 5 大きい
+        assert!(uf.is_same(0, 2));
+        assert_eq!(uf.diff(0, 1), 3);
+        assert_eq!(uf.diff(1, 2), 5);
+        assert_eq!(uf.diff(0, 2), 8); // 推移的に 3 + 5
+        assert_eq!(uf.diff(2, 0), -8); // 逆向きは符号反転
+    }
+
+    #[test]
+    fn separate_groups_not_same() {
+        let mut uf = WeightedUnionFind::new(5, 0i64);
+        uf.unite(0, 1, 2);
+        uf.unite(2, 3, 4);
+        assert!(!uf.is_same(0, 2));
+        assert!(uf.is_same(2, 3));
+    }
+
+    // 連鎖 0->1->2->3 の重みから任意ペアの diff を検証
+    #[rstest]
+    #[case(0, 3, 1 + 2 + 3)]
+    #[case(1, 3, 2 + 3)]
+    #[case(0, 2, 1 + 2)]
+    #[case(3, 0, -(1 + 2 + 3))]
+    fn diff_along_chain(#[case] x: usize, #[case] y: usize, #[case] expected: i64) {
+        let mut uf = WeightedUnionFind::new(4, 0i64);
+        uf.unite(0, 1, 1);
+        uf.unite(1, 2, 2);
+        uf.unite(2, 3, 3);
+        assert_eq!(uf.diff(x, y), expected);
+    }
+
+    #[test]
+    fn unite_already_connected_is_noop() {
+        let mut uf = WeightedUnionFind::new(3, 0i64);
+        uf.unite(0, 1, 5);
+        uf.unite(0, 1, 999); // 既に同一グループなので無視される
+        assert_eq!(uf.diff(0, 1), 5);
+    }
+}
