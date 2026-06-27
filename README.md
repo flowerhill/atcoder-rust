@@ -80,6 +80,17 @@ rsync -a --exclude target --exclude .git --exclude node_modules \
 # タスク生成（テンプレ指定）
 acc new abc300 --template atcoder-rust
 cd abc300/a   # src/main.rs を編集
+
+# コンテスト作成後にタスクを個別追加する場合も同様
+acc add a --template atcoder-rust
+```
+
+`acc add` / `acc new` で Rust を使うときは `--template atcoder-rust` を付ける。
+毎回指定したくなければデフォルトテンプレートを切り替えておけば `--template` を
+省略できる:
+
+```sh
+acc config default-template atcoder-rust
 ```
 
 各タスクは独立した cargo プロジェクトになる。主な `make` ターゲット:
