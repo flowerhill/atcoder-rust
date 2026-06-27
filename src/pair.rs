@@ -1,5 +1,7 @@
+use std::ops::{Add, Sub};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct Pair<T>(T, T);
+pub struct Pair<T>(pub T, pub T);
 
 impl<T: Add<Output = T>> Add for Pair<T> {
     type Output = Pair<T>;

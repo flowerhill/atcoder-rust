@@ -1,19 +1,19 @@
 use itertools::Itertools;
 
 // union find
-struct UnionFind {
+pub struct UnionFind {
     parent: Vec<usize>,
     size: Vec<usize>,
 }
 
 impl UnionFind {
-    fn new(n: usize) -> Self {
+    pub fn new(n: usize) -> Self {
         let parent = (0..n).collect_vec();
         let size = vec![1; n];
         Self { parent, size }
     }
 
-    fn root(&mut self, x: usize) -> usize {
+    pub fn root(&mut self, x: usize) -> usize {
         let idx = x;
         let px = self.parent[idx];
 
@@ -26,7 +26,7 @@ impl UnionFind {
         }
     }
 
-    fn unite(&mut self, x: usize, y: usize) {
+    pub fn unite(&mut self, x: usize, y: usize) {
         let px = self.root(x);
         let py = self.root(y);
         if px == py {
@@ -42,11 +42,11 @@ impl UnionFind {
         }
     }
 
-    fn same_uf(&mut self, x: usize, y: usize) -> bool {
+    pub fn same_uf(&mut self, x: usize, y: usize) -> bool {
         self.root(x) == self.root(y)
     }
 
-    fn size(&mut self, x: usize) -> usize {
+    pub fn size(&mut self, x: usize) -> usize {
         let px = self.root(x);
         self.size[px]
     }
