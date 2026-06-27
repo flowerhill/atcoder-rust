@@ -1,0 +1,16 @@
+{
+  "task": {
+    "program": ["src/main.rs"],
+    "submit": "submit.rs",
+    "static": [
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      ".gitignore",
+      "README.md",
+      "Makefile",
+      "src"
+    ],
+    "testdir": "test"
+  }
+}

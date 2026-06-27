@@ -66,3 +66,28 @@ cargo test
 
 各モジュール／`main.rs` の `#[cfg(test)]` テストはローカルで普通に実行できる
 （提出ファイルには含まれない）。
+
+## acc テンプレートとして使う
+
+このリポジトリは [atcoder-cli (acc)](https://github.com/Tatamo/atcoder-cli) の
+テンプレートとしてそのまま使える（`template.json` / `Makefile` 同梱）。
+
+```sh
+# acc の config-dir に配置
+rsync -a --exclude target --exclude .git --exclude node_modules \
+  ./ "$(acc config-dir)/atcoder-rust/"
+
+# タスク生成（テンプレ指定）
+acc new abc300 --template atcoder-rust
+cd abc300/a   # src/main.rs を編集
+```
+
+各タスクは独立した cargo プロジェクトになる。主な `make` ターゲット:
+
+| コマンド | 動作 |
+| --- | --- |
+| `make test` | oj でサンプルテスト |
+| `make bundle` | `submit.rs` を生成 |
+| `make tb` | test → bundle |
+| `make submit` | test → bundle → 提出（テスト失敗時は提出しない） |
+| `make verify-bundle` | 提出ファイルが依存込みでコンパイルできるか検証 |
