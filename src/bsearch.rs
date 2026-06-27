@@ -2,6 +2,7 @@ use crate::integer::Integer;
 
 // 二分探索
 // 左をfalse, 右をtrueとして、条件を満たす最小の値を探す
+// 返り値 (ng, ok) = (条件を満たさない最大値, 条件を満たす最小値)
 pub fn bisect<T: Integer>(l: T, r: T, mut f: impl FnMut(&T) -> bool) -> (T, T) {
     let (mut ng, mut ok) = (l, r);
     while ok > ng + T::ONE {
@@ -9,6 +10,18 @@ pub fn bisect<T: Integer>(l: T, r: T, mut f: impl FnMut(&T) -> bool) -> (T, T) {
         *if f(&mid) { &mut ok } else { &mut ng } = mid;
     }
     (ng, ok)
+}
+
+// 二分探索（左 true 版）
+// 左をtrue, 右をfalseとして、条件を満たす最大の値を探す
+// 返り値 (ok, ng) = (条件を満たす最大値, 条件を満たさない最小値)
+pub fn bisect_rev<T: Integer>(l: T, r: T, mut f: impl FnMut(&T) -> bool) -> (T, T) {
+    let (mut ok, mut ng) = (l, r);
+    while ng > ok + T::ONE {
+        let mid = ok + (ng - ok) / T::TWO;
+        *if f(&mid) { &mut ok } else { &mut ng } = mid;
+    }
+    (ok, ng)
 }
 
 pub trait LowerBound<T> {
@@ -57,6 +70,24 @@ mod tests {
     #[case(10, 9, 10)] // 全域 false → 右端
     fn bisect_finds_boundary(#[case] threshold: i64, #[case] ng: i64, #[case] ok: i64) {
         assert_eq!(bisect(0i64, 10, |&x| x >= threshold), (ng, ok));
+    }
+
+    // 左 true 版: f(x) = x <= threshold を満たす最大の値が境界 (ok, ng) になる
+    #[rstest]
+    #[case(5, 5, 6)] // 通常の境界
+    #[case(10, 9, 10)] // 全域 true → 右端
+    #[case(0, 0, 1)] // 0 のみ true → 左端
+    fn bisect_rev_finds_boundary(#[case] threshold: i64, #[case] ok: i64, #[case] ng: i64) {
+        assert_eq!(bisect_rev(0i64, 10, |&x| x <= threshold), (ok, ng));
+    }
+
+    // bisect と bisect_rev は同じ単調列に対し同じ境界を指す
+    // f(x)=x>=5 の「満たす最小」と f(x)=x<5 の「満たす最大」は隣接する
+    #[test]
+    fn bisect_and_rev_agree_on_boundary() {
+        let (_, ok) = bisect(0i64, 10, |&x| x >= 5); // ok = 5
+        let (max_true, _) = bisect_rev(0i64, 10, |&x| x < 5); // max_true = 4
+        assert_eq!(ok, max_true + 1);
     }
 
     #[rstest]
