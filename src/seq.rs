@@ -1,5 +1,6 @@
 use permutohedron::LexicalPermutation;
 
+/// `subseq` が `seq` の(連続とは限らない)部分列かどうかを判定する。
 pub fn is_subsequence_of<T: PartialEq>(subseq: &[T], seq: &[T]) -> bool {
     let mut subseq_iter = subseq.iter();
     let mut current_subseq_item = subseq_iter.next();
@@ -16,6 +17,7 @@ pub fn is_subsequence_of<T: PartialEq>(subseq: &[T], seq: &[T]) -> bool {
     current_subseq_item.is_none()
 }
 
+/// 文字の多重集合 `cs` から、重複を除いた全順列を辞書順で生成する。
 pub fn distinct_permutation(mut cs: Vec<char>) -> Vec<String> {
     cs.sort();
     let mut v = vec![];

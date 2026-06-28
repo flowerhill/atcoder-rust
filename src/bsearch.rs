@@ -1,8 +1,9 @@
 use crate::integer::Integer;
 
-// 二分探索
-// 左をfalse, 右をtrueとして、条件を満たす最小の値を探す
-// 返り値 (ng, ok) = (条件を満たさない最大値, 条件を満たす最小値)
+/// 二分探索。左を `false`、右を `true` として、条件を満たす最小の値を探す。
+///
+/// `f` は `false → true` に単調変化する述語であること。
+/// 返り値 `(ng, ok)` = `(条件を満たさない最大値, 条件を満たす最小値)`。
 pub fn bisect<T: Integer>(l: T, r: T, mut f: impl FnMut(&T) -> bool) -> (T, T) {
     let (mut ng, mut ok) = (l, r);
     while ok > ng + T::ONE {
@@ -12,9 +13,10 @@ pub fn bisect<T: Integer>(l: T, r: T, mut f: impl FnMut(&T) -> bool) -> (T, T) {
     (ng, ok)
 }
 
-// 二分探索（左 true 版）
-// 左をtrue, 右をfalseとして、条件を満たす最大の値を探す
-// 返り値 (ok, ng) = (条件を満たす最大値, 条件を満たさない最小値)
+/// 二分探索(左 true 版)。左を `true`、右を `false` として、条件を満たす最大の値を探す。
+///
+/// `f` は `true → false` に単調変化する述語であること。
+/// 返り値 `(ok, ng)` = `(条件を満たす最大値, 条件を満たさない最小値)`。
 pub fn bisect_rev<T: Integer>(l: T, r: T, mut f: impl FnMut(&T) -> bool) -> (T, T) {
     let (mut ok, mut ng) = (l, r);
     while ng > ok + T::ONE {
@@ -24,8 +26,10 @@ pub fn bisect_rev<T: Integer>(l: T, r: T, mut f: impl FnMut(&T) -> bool) -> (T, 
     (ok, ng)
 }
 
+/// 昇順ソート済みスライスに対する lower bound 操作。
 pub trait LowerBound<T> {
     type Item: Ord;
+    /// `x` 以上の値が最初に現れる位置を返す(無ければ `len` = 挿入位置)。
     fn lower_bound(&self, x: &T) -> usize;
 }
 
@@ -41,8 +45,10 @@ impl<T: Ord> LowerBound<T> for [T] {
     }
 }
 
+/// 昇順ソート済みスライスに対する upper bound 操作。
 pub trait UpperBound<T> {
     type Item: Ord;
+    /// `x` より大きい値が最初に現れる位置を返す(無ければ `len` = 挿入位置)。
     fn upper_bound(&self, x: &T) -> usize;
 }
 

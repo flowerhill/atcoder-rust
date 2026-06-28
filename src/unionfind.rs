@@ -1,18 +1,20 @@
 use itertools::Itertools;
 
-// union find
+/// Union-Find(素集合データ構造)。経路圧縮と union by size を行う。
 pub struct UnionFind {
     parent: Vec<usize>,
     size: Vec<usize>,
 }
 
 impl UnionFind {
+    /// 要素 `0..n` をそれぞれ独立した集合として初期化する。
     pub fn new(n: usize) -> Self {
         let parent = (0..n).collect_vec();
         let size = vec![1; n];
         Self { parent, size }
     }
 
+    /// `x` の属する集合の代表元(根)を返す。経路圧縮を行う。
     pub fn root(&mut self, x: usize) -> usize {
         let idx = x;
         let px = self.parent[idx];
@@ -26,6 +28,7 @@ impl UnionFind {
         }
     }
 
+    /// `x` と `y` の属する集合を併合する(サイズの大きい方に小さい方を繋ぐ)。
     pub fn unite(&mut self, x: usize, y: usize) {
         let px = self.root(x);
         let py = self.root(y);
@@ -42,10 +45,12 @@ impl UnionFind {
         }
     }
 
+    /// `x` と `y` が同じ集合に属するか判定する。
     pub fn same_uf(&mut self, x: usize, y: usize) -> bool {
         self.root(x) == self.root(y)
     }
 
+    /// `x` の属する集合の要素数を返す。
     pub fn size(&mut self, x: usize) -> usize {
         let px = self.root(x);
         self.size[px]

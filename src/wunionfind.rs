@@ -1,5 +1,7 @@
 use std::ops::{Add, AddAssign, Neg, Sub};
 
+/// 重み付き Union-Find。各要素に「根からの相対重み」を持たせ、
+/// 同じ集合に属する 2 要素間の重みの差を管理する。
 pub struct WeightedUnionFind<T: Clone> {
     parent: Vec<usize>,
     rank: Vec<usize>,
@@ -10,6 +12,7 @@ impl<T> WeightedUnionFind<T>
 where
     T: Copy + Clone + Add<Output = T> + AddAssign + Sub<Output = T> + Neg<Output = T>,
 {
+    /// `size` 個の要素を、重み 0(= `zero`)の独立した集合として初期化する。
     pub fn new(size: usize, zero: T) -> Self {
         WeightedUnionFind {
             parent: (0..size).collect(),
@@ -18,6 +21,7 @@ where
         }
     }
 
+    /// `x` の根を返す。経路圧縮しつつ累積重みを根からの相対重みへ更新する。
     pub fn find(&mut self, x: usize) -> usize {
         if self.parent[x] == x {
             x
@@ -30,6 +34,7 @@ where
         }
     }
 
+    /// `weight(y) - weight(x) == w` となるように `x` と `y` の集合を併合する(union by rank)。
     pub fn unite(&mut self, x: usize, y: usize, w: T) {
         let mut root_x = self.find(x);
         let mut root_y = self.find(y);
@@ -52,14 +57,17 @@ where
         self.diff_weight[root_y] = weight;
     }
 
+    /// `x` と `y` が同じ集合に属するか判定する。
     pub fn is_same(&mut self, x: usize, y: usize) -> bool {
         self.find(x) == self.find(y)
     }
 
+    /// 同じ集合内での `weight(y) - weight(x)` を返す。
     pub fn diff(&mut self, x: usize, y: usize) -> T {
         self.diff_weight[y] - self.diff_weight[x]
     }
 
+    /// `x` の根からの相対重みを返す。
     pub fn weight(&mut self, x: usize) -> T {
         self.find(x);
         self.diff_weight[x]

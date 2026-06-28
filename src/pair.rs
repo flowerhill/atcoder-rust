@@ -1,11 +1,13 @@
 use std::ops::{Add, Sub};
 
+/// 2 成分の座標・ベクトルを表し、成分ごとの加減算ができる型。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Pair<T>(pub T, pub T);
 
 impl<T: Add<Output = T>> Add for Pair<T> {
     type Output = Pair<T>;
 
+    /// 成分ごとに加算する。
     fn add(self, rhs: Self) -> Self::Output {
         Pair(self.0 + rhs.0, self.1 + rhs.1)
     }
@@ -14,6 +16,7 @@ impl<T: Add<Output = T>> Add for Pair<T> {
 impl<T: Sub<Output = T>> Sub for Pair<T> {
     type Output = Pair<T>;
 
+    /// 成分ごとに減算する。
     fn sub(self, rhs: Self) -> Self::Output {
         Pair(self.0 - rhs.0, self.1 - rhs.1)
     }

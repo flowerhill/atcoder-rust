@@ -1,3 +1,6 @@
+/// 長さ `k` の連続部分文字列に回文が 1 つでも含まれるか判定する。
+///
+/// `k` は `s.len()` 以下であること(超えると添字計算がアンダーフローする)。
 pub fn contains_palindrome(s: String, k: usize) -> bool {
     for i in 0..=s.len() - k {
         if is_palindrome(&s[i..i + k]) {
@@ -7,6 +10,7 @@ pub fn contains_palindrome(s: String, k: usize) -> bool {
     false
 }
 
+/// `s` が回文かどうかを判定する。
 pub fn is_palindrome(s: &str) -> bool {
     s.chars().eq(s.chars().rev())
 }

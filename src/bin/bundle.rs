@@ -20,6 +20,7 @@ use std::path::{Path, PathBuf};
 /// クレートのルートディレクトリ(コンパイル時に確定)。
 const CRATE_DIR: &str = env!("CARGO_MANIFEST_DIR");
 
+/// クレートの `src/` ディレクトリの絶対パスを返す。
 fn src_dir() -> PathBuf {
     Path::new(CRATE_DIR).join("src")
 }

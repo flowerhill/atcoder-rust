@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use std::collections::{HashSet, VecDeque};
 
-// dfs
+/// グラフ `g`(隣接リスト)を `pos` から深さ優先探索し、到達したノードを `visited` に記録する。
 pub fn dfs(g: &Vec<Vec<usize>>, visited: &mut Vec<bool>, pos: usize) {
     visited[pos] = true;
     for &e in g[pos].iter() {
@@ -11,7 +11,9 @@ pub fn dfs(g: &Vec<Vec<usize>>, visited: &mut Vec<bool>, pos: usize) {
     }
 }
 
-// 重み付きdfs
+/// 重み付きグラフを DFS し、`v0` からの距離を `visited` に記録する。
+///
+/// 呼び出し前に `visited[v0]` を始点の距離(通常 `Some(0)`)で初期化しておくこと。
 pub fn dfsw(g: &Vec<Vec<(usize, i64)>>, visited: &mut Vec<Option<i64>>, v0: usize) {
     let prev = visited[v0].unwrap();
 
@@ -23,7 +25,9 @@ pub fn dfsw(g: &Vec<Vec<(usize, i64)>>, visited: &mut Vec<Option<i64>>, v0: usiz
     }
 }
 
-// 重み付きbfs
+/// 重み付きグラフを BFS し、`queue` を消費しながら各ノードへの距離を `visited` に記録する。
+///
+/// 呼び出し前に始点を `visited`(`Some(0)` など)と `queue` にセットしておくこと。
 pub fn bfsw(
     g: &Vec<Vec<(usize, i64)>>,
     visited: &mut Vec<Option<i64>>,
@@ -48,7 +52,7 @@ pub fn bfsw(
     bfsw(g, visited, queue);
 }
 
-// 木の各部分木のサイズを求める
+/// 根 0 の木について、根の各子を根とする部分木のサイズを `size` に積み、全体のノード数を返す。
 pub fn dfs_subtree_size(
     graph: &Vec<Vec<usize>>,
     start: usize,
@@ -73,6 +77,9 @@ pub fn dfs_subtree_size(
     cnt
 }
 
+/// 始点 `start` から各ノードへの最短距離を返す(ダイクストラ法、O(V^2))。
+///
+/// 到達不能なノードの距離は `i64::MAX`。辺の重みは非負であること。
 pub fn dijkstra(g: &[Vec<(usize, i64)>], start: usize) -> Vec<i64> {
     let n = g.len();
     let mut dist = vec![i64::MAX; n];
