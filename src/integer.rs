@@ -3,6 +3,8 @@ use std::ops::{
     SubAssign,
 };
 
+/// 各種整数型(`i64` / `usize` など)を共通に扱うためのトレイト。
+/// 四則演算・ビット演算・定数・`usize` 変換をまとめて要求する。
 pub trait Integer:
     Sized
     + Copy
@@ -27,7 +29,9 @@ pub trait Integer:
     const TWO: Self;
     const MAX: Self;
     const MIN: Self;
+    /// `self` を `usize` にキャストして返す。
     fn as_usize(&self) -> usize;
+    /// `usize` 値を `Self` 型にキャストして生成する。
     fn from_usize(n: usize) -> Self;
 }
 macro_rules! impl_integer {
@@ -51,6 +55,17 @@ macro_rules! impl_integer {
 }
 
 impl_integer!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize);
+
+/// 整数区間 [lo, hi] の要素数。空区間 (lo > hi) なら 0 を返す。
+/// `Integer` を実装する任意の整数型で使える（`usize` など）。
+/// `lo > hi` を先に弾くので符号なし型でもアンダーフローしない。
+pub fn range_size<T: Integer>(lo: T, hi: T) -> T {
+    if lo > hi {
+        T::ZERO
+    } else {
+        hi - lo + T::ONE
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -98,5 +113,23 @@ mod tests {
         assert_eq!(<i32 as Integer>::MIN, i32::MIN);
         assert_eq!(<u8 as Integer>::MAX, u8::MAX);
         assert_eq!(<u8 as Integer>::MIN, u8::MIN);
+    }
+
+    // 区間 [lo, hi] の要素数。空区間は 0
+    #[rstest]
+    #[case(1, 5, 5)]
+    #[case(3, 3, 1)] // 1 点
+    #[case(5, 1, 0)] // 空区間
+    #[case(0, -1, 0)] // 空区間
+    fn range_size_signed(#[case] lo: i64, #[case] hi: i64, #[case] expected: i64) {
+        assert_eq!(range_size(lo, hi), expected);
+    }
+
+    // 符号なし型でも lo > hi でアンダーフローしない
+    #[rstest]
+    #[case(2, 5, 4)]
+    #[case(5, 2, 0)]
+    fn range_size_unsigned(#[case] lo: usize, #[case] hi: usize, #[case] expected: usize) {
+        assert_eq!(range_size(lo, hi), expected);
     }
 }
