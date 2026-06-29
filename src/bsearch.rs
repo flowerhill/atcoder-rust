@@ -1,4 +1,4 @@
-use crate::integer::Integer;
+use crate::math::Integer;
 
 /// 二分探索。左を `false`、右を `true` として、条件を満たす最小の値を探す。
 ///
