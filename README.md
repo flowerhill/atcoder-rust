@@ -101,4 +101,6 @@ acc config default-template atcoder-rust
 | `make bundle` | `submit.rs` を生成 |
 | `make tb` | test → bundle |
 | `make submit` | test → bundle → 提出（テスト失敗時は提出しない） |
+| `make submit-force` | test 無しで bundle → 提出 |
 | `make verify-bundle` | 提出ファイルが依存込みでコンパイルできるか検証 |
+| `make clean` | `submit.rs` と `target` を削除 |
