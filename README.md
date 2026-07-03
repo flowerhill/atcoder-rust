@@ -18,13 +18,14 @@ src/
 │
 ├── bsearch.rs       # 二分探索 / lower_bound / upper_bound
 ├── graph.rs         # dfs / bfs / dijkstra / 部分木サイズ
-├── integer.rs       # Integer トレイト（整数の総称）
 ├── io.rs            # 出力ヘルパ（print_lines など）
+├── math.rs          # Integer トレイト / 桁変換（to_digits など）
 ├── pair.rs          # Pair<T>（成分ごとの加減算）
 ├── seq.rs           # 部分列判定 / 順列列挙
 ├── string.rs        # 回文判定など
+├── sumunionfind.rs  # 和の制約 x_a + x_b = c 用の符号付き Union-Find（SumUnionFind）
 ├── unionfind.rs     # Union-Find
-└── wunionfind.rs    # 重み付き Union-Find
+└── wunionfind.rs    # 重み付き Union-Find（差 x_j - x_i = w）
 ```
 
 ## 解答の書き方
