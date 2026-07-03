@@ -9,5 +9,6 @@ pub mod math;
 pub mod pair;
 pub mod seq;
 pub mod string;
+pub mod sumunionfind;
 pub mod unionfind;
 pub mod wunionfind;
