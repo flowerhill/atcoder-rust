@@ -42,10 +42,71 @@ fn available_modules() -> BTreeSet<String> {
     mods
 }
 
+/// コメント(行 `//` / ブロック `/* */`)と文字列リテラルの中身を取り除き、
+/// コードとして意味のある部分だけを残す。依存スキャン専用(出力には使わない)。
+///
+/// これをしないと、`main.rs` のコメント例や doc コメント内の `crate::<mod>` /
+/// `atcoder_rust::<mod>` を「使用」と誤検出し、不要なモジュールまで束ねてしまう。
+fn code_only(src: &str) -> String {
+    let chars: Vec<char> = src.chars().collect();
+    let n = chars.len();
+    let mut out = String::with_capacity(src.len());
+    let mut i = 0;
+    while i < n {
+        let c = chars[i];
+        // 行コメント: 改行まで飛ばす(改行自体は次の反復で残る)。
+        if c == '/' && i + 1 < n && chars[i + 1] == '/' {
+            i += 2;
+            while i < n && chars[i] != '\n' {
+                i += 1;
+            }
+            continue;
+        }
+        // ブロックコメント(ネスト対応)。
+        if c == '/' && i + 1 < n && chars[i + 1] == '*' {
+            i += 2;
+            let mut depth = 1usize;
+            while i < n && depth > 0 {
+                if chars[i] == '/' && i + 1 < n && chars[i + 1] == '*' {
+                    depth += 1;
+                    i += 2;
+                } else if chars[i] == '*' && i + 1 < n && chars[i + 1] == '/' {
+                    depth -= 1;
+                    i += 2;
+                } else {
+                    i += 1;
+                }
+            }
+            continue;
+        }
+        // 文字列リテラル: エスケープを考慮して閉じ `"` まで飛ばす。
+        if c == '"' {
+            i += 1;
+            while i < n {
+                if chars[i] == '\\' {
+                    i += 2;
+                    continue;
+                }
+                if chars[i] == '"' {
+                    i += 1;
+                    break;
+                }
+                i += 1;
+            }
+            continue;
+        }
+        out.push(c);
+        i += 1;
+    }
+    out
+}
+
 /// `src` 中の `crate::<ident>` を走査し、`available` に含まれるものを `out` に集める。
+/// コメント・文字列リテラルは除外して、実コード中の参照だけを見る。
 fn collect_crate_refs(src: &str, available: &BTreeSet<String>, out: &mut BTreeSet<String>) {
     const PAT: &str = "crate::";
-    let mut rest = src;
+    let scannable = code_only(src);
+    let mut rest = scannable.as_str();
     while let Some(pos) = rest.find(PAT) {
         let after = &rest[pos + PAT.len()..];
         let ident: String = after
