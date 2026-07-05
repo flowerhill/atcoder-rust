@@ -67,6 +67,221 @@ pub fn range_size<T: Integer>(lo: T, hi: T) -> T {
     }
 }
 
+/// 素数 mod（AtCoder 頻出の 10^9+7）。
+pub const MOD: i64 = 1_000_000_007;
+
+/// `base^exp mod m` を繰り返し二乗法（バイナリ法）で計算する。O(log exp)。
+/// `m == 1` でも `1 % m == 0` となり破綻しない。`0^0 == 1` と定義する。
+/// `base` が負でも `base %= m` 後に `+ m` で非負へ寄せて扱う。`exp >= 0` が前提。
+///
+/// ```
+/// use atcoder_rust::math::{modpow, MOD};
+/// assert_eq!(modpow(2, 10, MOD), 1024);
+/// assert_eq!(modpow(3, 0, 7), 1);
+/// assert_eq!(modpow(0, 0, 7), 1);
+/// assert_eq!(modpow(123, 456, MOD), 565291922);
+/// assert_eq!(modpow(-1, 3, 7), 6); // (-1)^3 = -1 ≡ 6 (mod 7)
+/// ```
+pub fn modpow(mut base: i64, mut exp: i64, m: i64) -> i64 {
+    let mut result = 1 % m;
+    base = ((base % m) + m) % m;
+    while exp > 0 {
+        if exp & 1 == 1 {
+            result = result * base % m;
+        }
+        base = base * base % m;
+        exp >>= 1;
+    }
+    result
+}
+
+/// 素数 `m` を法とする `a` の逆元（フェルマーの小定理）。`m` は素数、`gcd(a, m) == 1` が前提。
+/// `a` が負でも `modpow` 側で非負へ寄せて扱う。
+///
+/// ```
+/// use atcoder_rust::math::{modinv, MOD};
+/// assert_eq!(modinv(2, MOD) * 2 % MOD, 1);
+/// assert_eq!(modinv(3, 7), 5); // 3*5 = 15 ≡ 1 (mod 7)
+/// ```
+pub fn modinv(a: i64, m: i64) -> i64 {
+    modpow(a, m - 2, m)
+}
+
+/// 階乗・逆階乗を前計算し、mod 素数 `MOD` 上で二項係数 `nCr` / 順列 `nPr` を O(1) で返す。
+/// `new(n_max)` で 0..=n_max のテーブルを作る（前計算 O(n_max)）。
+///
+/// ```
+/// use atcoder_rust::math::Comb;
+/// let c = Comb::new(1000);
+/// assert_eq!(c.comb(5, 2), 10);
+/// assert_eq!(c.perm(5, 2), 20);
+/// assert_eq!(c.comb(5, 0), 1);
+/// assert_eq!(c.comb(2, 5), 0); // r > n は 0
+/// ```
+pub struct Comb {
+    fact: Vec<i64>,
+    inv_fact: Vec<i64>,
+}
+
+impl Comb {
+    /// 0..=n_max の階乗・逆階乗を前計算する。O(n_max)。
+    pub fn new(n_max: usize) -> Self {
+        let mut fact = vec![1i64; n_max + 1];
+        for i in 1..=n_max {
+            fact[i] = fact[i - 1] * i as i64 % MOD;
+        }
+        let mut inv_fact = vec![1i64; n_max + 1];
+        inv_fact[n_max] = modinv(fact[n_max], MOD);
+        for i in (1..=n_max).rev() {
+            inv_fact[i - 1] = inv_fact[i] * i as i64 % MOD;
+        }
+        Self { fact, inv_fact }
+    }
+
+    /// 二項係数 nCr mod MOD。`r > n` なら 0。`n` は前計算範囲内であること。
+    pub fn comb(&self, n: usize, r: usize) -> i64 {
+        if r > n {
+            return 0;
+        }
+        assert!(
+            n < self.fact.len(),
+            "Comb::comb: n={} が前計算範囲 {} を超えています",
+            n,
+            self.fact.len() - 1
+        );
+        self.fact[n] * self.inv_fact[r] % MOD * self.inv_fact[n - r] % MOD
+    }
+
+    /// 順列 nPr mod MOD。`r > n` なら 0。`n` は前計算範囲内であること。
+    pub fn perm(&self, n: usize, r: usize) -> i64 {
+        if r > n {
+            return 0;
+        }
+        assert!(
+            n < self.fact.len(),
+            "Comb::perm: n={} が前計算範囲 {} を超えています",
+            n,
+            self.fact.len() - 1
+        );
+        self.fact[n] * self.inv_fact[n - r] % MOD
+    }
+}
+
+/// 最大公約数（ユークリッドの互除法）。負値は絶対値で扱う。`gcd(0, 0) == 0`。
+///
+/// ```
+/// use atcoder_rust::math::gcd;
+/// assert_eq!(gcd(12, 18), 6);
+/// assert_eq!(gcd(0, 5), 5);
+/// assert_eq!(gcd(-12, 18), 6);
+/// ```
+pub fn gcd(a: i64, b: i64) -> i64 {
+    let (mut a, mut b) = (a.abs(), b.abs());
+    while b != 0 {
+        let r = a % b;
+        a = b;
+        b = r;
+    }
+    a
+}
+
+/// 最小公倍数。`a` か `b` が 0 なら 0。先に割ってから掛けてオーバーフローを抑える。
+///
+/// ```
+/// use atcoder_rust::math::lcm;
+/// assert_eq!(lcm(4, 6), 12);
+/// assert_eq!(lcm(0, 5), 0);
+/// ```
+pub fn lcm(a: i64, b: i64) -> i64 {
+    if a == 0 || b == 0 {
+        0
+    } else {
+        a.abs() / gcd(a, b) * b.abs()
+    }
+}
+
+/// エラトステネスの篩。長さ `n+1` の `Vec<bool>` を返し、`v[i]` は i が素数か（0,1 は false）。
+///
+/// ```
+/// use atcoder_rust::math::sieve;
+/// let p = sieve(10);
+/// assert!(p[2] && p[3] && p[5] && p[7]);
+/// assert!(!p[0] && !p[1] && !p[9]);
+/// ```
+pub fn sieve(n: usize) -> Vec<bool> {
+    let mut is_prime = vec![true; n + 1];
+    is_prime[0] = false;
+    if n >= 1 {
+        is_prime[1] = false;
+    }
+    let mut i = 2;
+    while i * i <= n {
+        if is_prime[i] {
+            let mut j = i * i;
+            while j <= n {
+                is_prime[j] = false;
+                j += i;
+            }
+        }
+        i += 1;
+    }
+    is_prime
+}
+
+/// 試し割りによる素因数分解。`(素因数, 指数)` を昇順で返す。`n >= 1`。O(√n)。
+///
+/// ```
+/// use atcoder_rust::math::factorize;
+/// assert_eq!(factorize(12), vec![(2, 2), (3, 1)]);
+/// assert_eq!(factorize(1), vec![]);
+/// assert_eq!(factorize(97), vec![(97, 1)]);
+/// ```
+pub fn factorize(mut n: i64) -> Vec<(i64, u32)> {
+    let mut factors = Vec::new();
+    let mut d = 2;
+    while d * d <= n {
+        if n % d == 0 {
+            let mut e = 0;
+            while n % d == 0 {
+                n /= d;
+                e += 1;
+            }
+            factors.push((d, e));
+        }
+        d += 1;
+    }
+    if n > 1 {
+        factors.push((n, 1));
+    }
+    factors
+}
+
+/// `n` の約数を昇順で全列挙する。`n >= 1`。O(√n)。
+///
+/// ```
+/// use atcoder_rust::math::divisors;
+/// assert_eq!(divisors(12), vec![1, 2, 3, 4, 6, 12]);
+/// assert_eq!(divisors(1), vec![1]);
+/// assert_eq!(divisors(7), vec![1, 7]);
+/// ```
+pub fn divisors(n: i64) -> Vec<i64> {
+    let mut small = Vec::new();
+    let mut large = Vec::new();
+    let mut i = 1;
+    while i * i <= n {
+        if n % i == 0 {
+            small.push(i);
+            if i != n / i {
+                large.push(n / i);
+            }
+        }
+        i += 1;
+    }
+    large.reverse();
+    small.extend(large);
+    small
+}
+
 /// 非負整数 `n` を `base` 進法で桁分解する（最上位桁が先頭）。
 /// `n == 0` のときは `[0]` を返す。
 ///
