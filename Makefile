@@ -13,11 +13,13 @@ bundle:
 	cargo run -q --bin bundle > submit.rs
 
 # 提出用ファイルが（外部 crate 込みで）コンパイルできるか検証。
-# submit.rs を一時的に cargo の bin として置き、依存込みでビルドする。
+# submit.rs を rustfmt で整形し、一時的に cargo の bin として置いて
+# 依存込みで cargo check する。
 verify-bundle: bundle
+	@rustfmt --edition 2021 submit.rs
 	@cp submit.rs src/bin/_verify_submit.rs
-	@cargo build -q --bin _verify_submit; st=$$?; rm -f src/bin/_verify_submit.rs; \
-	  if [ $$st -eq 0 ]; then echo "verify-bundle: OK"; else echo "verify-bundle: FAILED"; fi; exit $$st
+	@cargo check -q --bin _verify_submit; st=$$?; rm -f src/bin/_verify_submit.rs; \
+	  if [ $$st -eq 0 ]; then echo "verify-bundle: fmt & check OK"; else echo "verify-bundle: FAILED"; fi; exit $$st
 
 # --- 連結ターゲット（make は前提を左から順に実行し、失敗で中断する）---
 
@@ -44,7 +46,7 @@ help:
 	@echo "make tb            - test → bundle"
 	@echo "make submit        - test → bundle → 提出 (テスト失敗時は提出しない)"
 	@echo "make submit-force  - test 無しで bundle → 提出"
-	@echo "make verify-bundle - submit.rs が単体でコンパイルできるか確認"
+	@echo "make verify-bundle - submit.rs を整形し単体でコンパイルできるか確認"
 	@echo "make clean         - submit.rs と target を削除"
 
 .PHONY: test bundle verify-bundle tb test-bundle submit submit-force clean help
