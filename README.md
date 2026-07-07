@@ -17,7 +17,9 @@ src/
 │   └── bundle.rs    # 提出用バンドラ
 │
 ├── bsearch.rs       # 二分探索 / lower_bound / upper_bound
+├── cmp.rs           # chmax / chmin
 ├── graph.rs         # dfs / bfs / dijkstra / 部分木サイズ
+├── grid.rs          # グリッド用の方向定数（DIRS4 / DIRS8）
 ├── io.rs            # 出力ヘルパ（print_lines など）
 ├── math.rs          # Integer トレイト / 桁変換（to_digits など）
 ├── pair.rs          # Pair<T>（成分ごとの加減算）
