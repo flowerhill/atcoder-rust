@@ -1,6 +1,22 @@
 use itertools::Itertools;
 use std::collections::{HashSet, VecDeque};
 
+/// 無向辺のリストから n 頂点の隣接リストを作る(0-indexed)。各辺を両方向に張る。
+///
+/// ```
+/// use atcoder_rust::graph::build_undirected_graph;
+/// let g = build_undirected_graph(3, &[(0, 1), (1, 2)]);
+/// assert_eq!(g, vec![vec![1], vec![0, 2], vec![1]]);
+/// ```
+pub fn build_undirected_graph(n: usize, edges: &[(usize, usize)]) -> Vec<Vec<usize>> {
+    let mut g = vec![vec![]; n];
+    for &(a, b) in edges {
+        g[a].push(b);
+        g[b].push(a);
+    }
+    g
+}
+
 /// グラフ `g`(隣接リスト)を `pos` から深さ優先探索し、到達したノードを `visited` に記録する。
 pub fn dfs(g: &Vec<Vec<usize>>, visited: &mut Vec<bool>, pos: usize) {
     visited[pos] = true;
@@ -77,6 +93,66 @@ pub fn dfs_subtree_size(
     cnt
 }
 
+/// 木 `g`(隣接リスト)を `root` から辿り、行きがけ順 `order` と親配列 `parent` を返す。
+/// `order` 上で親は必ず子より前に並ぶので、逆順に走査すれば帰りがけ順の木 DP ができる。
+/// `root` の親は `usize::MAX`。再帰を使わないので深い木でもスタックオーバーフローしない。
+/// `g` は木(連結・閉路なし)であること。
+///
+/// ```
+/// use atcoder_rust::graph::tree_order;
+/// // 木: 0-1, 1-2, 0-3
+/// let g = vec![vec![1, 3], vec![0, 2], vec![1], vec![0]];
+/// let (order, parent) = tree_order(&g, 0);
+/// assert_eq!(order[0], 0);
+/// assert_eq!(parent, vec![usize::MAX, 0, 1, 0]);
+/// ```
+pub fn tree_order(g: &[Vec<usize>], root: usize) -> (Vec<usize>, Vec<usize>) {
+    let n = g.len();
+    let mut order = Vec::with_capacity(n);
+    let mut parent = vec![usize::MAX; n];
+    let mut stack = vec![root];
+    while let Some(v) = stack.pop() {
+        order.push(v);
+        for &u in &g[v] {
+            if u != parent[v] {
+                parent[u] = v;
+                stack.push(u);
+            }
+        }
+    }
+    (order, parent)
+}
+
+/// 木 `g` を `root` に向かって帰りがけ順に畳み込む木 DP。全頂点の DP 値を返す。O(N)。
+///
+/// - `init(v)`: 頂点 `v` 単体(子を畳み込む前)の DP 値
+/// - `merge(acc, v, child, u)`: `v` の現在値 `acc` に子 `u` の確定値 `child` を畳み込む
+///
+/// ```
+/// use atcoder_rust::graph::tree_dp;
+/// // 木: 0-1, 1-2, 0-3 の部分木サイズ
+/// let g = vec![vec![1, 3], vec![0, 2], vec![1], vec![0]];
+/// let size = tree_dp(&g, 0, |_| 1usize, |&acc, _, &child, _| acc + child);
+/// assert_eq!(size, vec![4, 2, 1, 1]);
+/// ```
+pub fn tree_dp<T>(
+    g: &[Vec<usize>],
+    root: usize,
+    init: impl FnMut(usize) -> T,
+    mut merge: impl FnMut(&T, usize, &T, usize) -> T,
+) -> Vec<T> {
+    let (order, parent) = tree_order(g, root);
+    let mut dp: Vec<T> = (0..g.len()).map(init).collect();
+    for &v in order.iter().rev() {
+        for &u in &g[v] {
+            if u != parent[v] {
+                dp[v] = merge(&dp[v], v, &dp[u], u);
+            }
+        }
+    }
+    dp
+}
+
 /// 始点 `start` から各ノードへの最短距離を返す(ダイクストラ法、O(V^2))。
 ///
 /// 到達不能なノードの距離は `i64::MAX`。辺の重みは非負であること。
@@ -116,20 +192,10 @@ mod tests {
     use super::*;
     use rstest::rstest;
 
-    // 無向グラフを隣接リストに変換するヘルパ
-    fn undirected(n: usize, edges: &[(usize, usize)]) -> Vec<Vec<usize>> {
-        let mut g = vec![vec![]; n];
-        for &(a, b) in edges {
-            g[a].push(b);
-            g[b].push(a);
-        }
-        g
-    }
-
     #[test]
     fn dfs_visits_connected_component() {
         // 0-1-2 が連結、3 は孤立
-        let g = undirected(4, &[(0, 1), (1, 2)]);
+        let g = build_undirected_graph(4, &[(0, 1), (1, 2)]);
         let mut visited = vec![false; 4];
         dfs(&g, &mut visited, 0);
         assert_eq!(visited, vec![true, true, true, false]);
@@ -158,12 +224,45 @@ mod tests {
     #[test]
     fn subtree_sizes_of_root_children() {
         // 木: 0 を根に、0-1, 1-2, 0-3 （0 の子は 1(部分木サイズ2) と 3(サイズ1)）
-        let g = undirected(4, &[(0, 1), (1, 2), (0, 3)]);
+        let g = build_undirected_graph(4, &[(0, 1), (1, 2), (0, 3)]);
         let mut visited = std::collections::HashSet::new();
         let mut size = vec![];
         let total = dfs_subtree_size(&g, 0, &mut visited, &mut size);
         assert_eq!(total, 4);
         assert_eq!(size, vec![2, 1]);
+    }
+
+    #[test]
+    fn tree_order_parents_before_children() {
+        // 木: 0-1, 1-2, 0-3
+        let g = build_undirected_graph(4, &[(0, 1), (1, 2), (0, 3)]);
+        let (order, parent) = tree_order(&g, 0);
+        assert_eq!(order.len(), 4);
+        assert_eq!(order[0], 0);
+        assert_eq!(parent, vec![usize::MAX, 0, 1, 0]);
+        // order 上で親は子より前
+        let pos: Vec<usize> = (0..4).map(|v| order.iter().position(|&x| x == v).unwrap()).collect();
+        for v in 1..4 {
+            assert!(pos[parent[v]] < pos[v], "parent of {} must come first", v);
+        }
+    }
+
+    #[test]
+    fn tree_dp_subtree_sizes() {
+        // 木: 0-1, 1-2, 0-3
+        let g = build_undirected_graph(4, &[(0, 1), (1, 2), (0, 3)]);
+        let size = tree_dp(&g, 0, |_| 1usize, |&acc, _, &child, _| acc + child);
+        assert_eq!(size, vec![4, 2, 1, 1]);
+    }
+
+    #[test]
+    fn tree_dp_deep_path_no_stack_overflow() {
+        // 10^5 頂点のパスでも落ちない
+        let n = 100_000;
+        let edges: Vec<(usize, usize)> = (0..n - 1).map(|i| (i, i + 1)).collect();
+        let g = build_undirected_graph(n, &edges);
+        let size = tree_dp(&g, 0, |_| 1usize, |&acc, _, &child, _| acc + child);
+        assert_eq!(size[0], n);
     }
 
     // 重み付き有向グラフ上の dijkstra
