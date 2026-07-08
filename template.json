@@ -1,6 +1,8 @@
 {
   "task": {
-    "program": ["src/main.rs"],
+    "program": [
+      "src/main.rs"
+    ],
     "submit": "submit.rs",
     "static": [
       "Cargo.toml",
@@ -9,7 +11,8 @@
       ".gitignore",
       "README.md",
       "Makefile",
-      "src"
+      "src",
+      "SKILL.md"
     ],
     "testdir": "test"
   }
