@@ -70,6 +70,39 @@ pub fn range_size<T: Integer>(lo: T, hi: T) -> T {
 /// 素数 mod（AtCoder 頻出の 10^9+7）。
 pub const MOD: i64 = 1_000_000_007;
 
+/// `(a + b) % MOD`。`a`, `b` は `[0, MOD)` を想定。
+///
+/// ```
+/// use atcoder_rust::math::{add_mod, MOD};
+/// assert_eq!(add_mod(3, 4), 7);
+/// assert_eq!(add_mod(MOD - 1, 2), 1);
+/// ```
+pub fn add_mod(a: i64, b: i64) -> i64 {
+    (a + b) % MOD
+}
+
+/// `(a - b) mod MOD` を非負で返す。`a`, `b` は `[0, MOD)` を想定。
+///
+/// ```
+/// use atcoder_rust::math::{sub_mod, MOD};
+/// assert_eq!(sub_mod(7, 3), 4);
+/// assert_eq!(sub_mod(0, 1), MOD - 1);
+/// ```
+pub fn sub_mod(a: i64, b: i64) -> i64 {
+    (a - b + MOD) % MOD
+}
+
+/// `a * b % MOD`。`a`, `b` は `[0, MOD)` を想定（積が `i64` に収まる）。
+///
+/// ```
+/// use atcoder_rust::math::{mul_mod, MOD};
+/// assert_eq!(mul_mod(3, 4), 12);
+/// assert_eq!(mul_mod(MOD - 1, MOD - 1), 1); // (-1) * (-1) ≡ 1
+/// ```
+pub fn mul_mod(a: i64, b: i64) -> i64 {
+    a * b % MOD
+}
+
 /// `base^exp mod m` を繰り返し二乗法（バイナリ法）で計算する。O(log exp)。
 /// `m == 1` でも `1 % m == 0` となり破綻しない。`0^0 == 1` と定義する。
 /// `base` が負でも `base %= m` 後に `+ m` で非負へ寄せて扱う。`exp >= 0` が前提。
