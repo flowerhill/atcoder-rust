@@ -18,10 +18,10 @@ src/
 │
 ├── bsearch.rs       # 二分探索 / lower_bound / upper_bound
 ├── cmp.rs           # chmax / chmin
-├── graph.rs         # dfs / bfs / dijkstra / 部分木サイズ
+├── graph.rs         # 隣接リスト構築（build_undirected_graph）/ dfs / bfs / dijkstra / 木 DP（tree_order・tree_dp）
 ├── grid.rs          # グリッド用の方向定数（DIRS4 / DIRS8）
 ├── io.rs            # 出力ヘルパ（print_lines など）
-├── math.rs          # Integer トレイト / 桁変換（to_digits など）
+├── math.rs          # Integer トレイト / mod 演算（add_mod・modpow・Comb など）/ 桁変換
 ├── pair.rs          # Pair<T>（成分ごとの加減算）
 ├── seq.rs           # 部分列判定 / 順列列挙
 ├── string.rs        # 回文判定など
