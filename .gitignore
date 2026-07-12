@@ -1,3 +1,6 @@
 /target
 node_modules/
 submit.rs
+.envrc.local
+.env
+.direnv/

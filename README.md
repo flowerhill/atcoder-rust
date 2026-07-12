@@ -5,7 +5,20 @@ AtCoder 用の Rust 競技プログラミング環境。自作ライブラリを
 
 ## 必要環境
 
-- Rust **1.89.0**（`rust-toolchain.toml` で固定。AtCoder の判定環境に合わせている）
+- Rust **1.89.0**（AtCoder の判定環境に合わせている）
+  - rustup 利用時: `rust-toolchain.toml` で自動的に固定される
+  - Nix 利用時: 同梱の `flake.nix` で rustc / cargo / rust-analyzer 1.89.0 と oj が入る（下記）
+
+### Nix + direnv で環境構築
+
+`flake.nix` / `flake.lock` / `.envrc` をコンテスト用ルートディレクトリ（各タスクを作る場所）にコピーして direnv を許可する:
+
+```sh
+cp flake.nix flake.lock .envrc ~/dev/atcoder/atcoder-rust/   # ルートは例
+direnv allow ~/dev/atcoder/atcoder-rust
+```
+
+direnv は親ディレクトリの `.envrc` を遡って見つけるため、ルート 1 か所に置けば配下の全タスクディレクトリで環境が自動で有効になる（`template.json` の `static` には意図的に含めていない）。個人用の環境変数は同じ場所の `.envrc.local` に書く（git には含めない）。ジャッジの Rust バージョンが上がったときは `flake.nix` の `"1.89.0"` と `rust-toolchain.toml` を揃えて更新する。
 
 ## ディレクトリ構成
 
