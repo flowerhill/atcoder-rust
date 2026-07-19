@@ -1,4 +1,4 @@
-use std::ops::{Add, Sub};
+use std::ops::{Add, Mul, Sub};
 
 /// 2 成分の座標・ベクトルを表し、成分ごとの加減算ができる型。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -22,6 +22,20 @@ impl<T: Sub<Output = T>> Sub for Pair<T> {
     }
 }
 
+impl<T: Mul<Output = T> + Sub<Output = T>> Pair<T> {
+    /// 2 次元ベクトルの外積（z 成分）。0 なら 2 ベクトルは平行。
+    ///
+    /// ```
+    /// use atcoder_rust::pair::Pair;
+    ///
+    /// assert_eq!(Pair(1, 0).cross(Pair(0, 1)), 1);
+    /// assert_eq!(Pair(2, 4).cross(Pair(1, 2)), 0);
+    /// ```
+    pub fn cross(self, rhs: Self) -> T {
+        self.0 * rhs.1 - self.1 * rhs.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -40,6 +54,14 @@ mod tests {
     #[case(Pair(0, 0), Pair(5, -5), Pair(-5, 5))]
     fn sub_componentwise(#[case] a: Pair<i32>, #[case] b: Pair<i32>, #[case] expected: Pair<i32>) {
         assert_eq!(a - b, expected);
+    }
+
+    #[rstest]
+    #[case(Pair(1, 0), Pair(0, 1), 1)]
+    #[case(Pair(2, 4), Pair(1, 2), 0)]
+    #[case(Pair(-1, 1), Pair(2, 2), -4)]
+    fn cross_z_component(#[case] a: Pair<i32>, #[case] b: Pair<i32>, #[case] expected: i32) {
+        assert_eq!(a.cross(b), expected);
     }
 
     #[test]
