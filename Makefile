@@ -8,15 +8,15 @@ test:
 	cargo build -q --release --bin $(BIN)
 	oj test -c "./target/release/$(BIN)" -d test
 
-# 提出用の 1 ファイルを生成（main.rs が使う自作モジュールを束ねる）
+# 提出用の 1 ファイルを生成（main.rs が使う自作モジュールを束ねる）し、
+# rustfmt で整形する（bundler は mod で包むだけでインデントしないため）
 bundle:
 	cargo run -q --bin bundle > submit.rs
+	@rustfmt --edition 2021 submit.rs
 
 # 提出用ファイルが（外部 crate 込みで）コンパイルできるか検証。
-# submit.rs を rustfmt で整形し、一時的に cargo の bin として置いて
-# 依存込みで cargo check する。
+# 一時的に cargo の bin として置いて依存込みで cargo check する。
 verify-bundle: bundle
-	@rustfmt --edition 2021 submit.rs
 	@cp submit.rs src/bin/_verify_submit.rs
 	@cargo check -q --bin _verify_submit; st=$$?; rm -f src/bin/_verify_submit.rs; \
 	  if [ $$st -eq 0 ]; then echo "verify-bundle: fmt & check OK"; else echo "verify-bundle: FAILED"; fi; exit $$st
