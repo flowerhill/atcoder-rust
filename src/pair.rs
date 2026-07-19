@@ -36,6 +36,20 @@ impl<T: Mul<Output = T> + Sub<Output = T>> Pair<T> {
     }
 }
 
+impl<T: Mul<Output = T> + Add<Output = T>> Pair<T> {
+    /// 2 次元ベクトルの内積（スカラ積）。0 なら 2 ベクトルは直交。
+    ///
+    /// ```
+    /// use atcoder_rust::pair::Pair;
+    ///
+    /// assert_eq!(Pair(1, 0).dot(Pair(0, 1)), 0);
+    /// assert_eq!(Pair(2, 3).dot(Pair(4, 5)), 23);
+    /// ```
+    pub fn dot(self, rhs: Self) -> T {
+        self.0 * rhs.0 + self.1 * rhs.1
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -62,6 +76,14 @@ mod tests {
     #[case(Pair(-1, 1), Pair(2, 2), -4)]
     fn cross_z_component(#[case] a: Pair<i32>, #[case] b: Pair<i32>, #[case] expected: i32) {
         assert_eq!(a.cross(b), expected);
+    }
+
+    #[rstest]
+    #[case(Pair(1, 0), Pair(0, 1), 0)]
+    #[case(Pair(2, 3), Pair(4, 5), 23)]
+    #[case(Pair(-1, 1), Pair(2, 2), 0)]
+    fn dot_scalar_product(#[case] a: Pair<i32>, #[case] b: Pair<i32>, #[case] expected: i32) {
+        assert_eq!(a.dot(b), expected);
     }
 
     #[test]
