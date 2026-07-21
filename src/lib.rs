@@ -6,6 +6,7 @@ pub mod bsearch;
 pub mod cmp;
 pub mod graph;
 pub mod grid;
+pub mod imos;
 pub mod io;
 pub mod math;
 pub mod pair;
