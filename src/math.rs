@@ -69,7 +69,7 @@ pub fn range_size<T: Integer>(lo: T, hi: T) -> T {
 
 /// 初項 `a`、公差 `d`、項数 `n` の等差数列 a, a+d, .., a+(n-1)d の総和 `n*a + d*n(n-1)/2`。
 /// `n(n-1)` を作る前に偶数側を 2 で割るので、答えが `T` に収まる限り途中で溢れない
-/// （符号なし型でもアンダーフローしない）。1+2+..+n は `sum_of_arith(1, 1, n)`。
+/// （符号なし型でもアンダーフローしない）。区間 [lo, hi] の総和は `sum_of_range`、
 /// mod を取りたいときは `sum_of_arith_mod`（区間 [lo, hi] 版）を使う。
 ///
 /// ```
@@ -94,6 +94,21 @@ pub fn sum_of_arith<T: Integer>(a: T, d: T, n: usize) -> T {
         n * ((n - T::ONE) / T::TWO)
     };
     a * n + d * steps
+}
+
+/// 等差数列（公差 1）の和: 整数区間 [lo, hi] の総和。空区間 (lo > hi) なら 0。
+/// `1+2+..+n` は `sum_of_range(1, n)`。mod を取るなら `sum_of_arith_mod`。
+///
+/// ```
+/// use atcoder_rust::math::sum_of_range;
+/// assert_eq!(sum_of_range(1u64, 10), 55); // 1+2+..+10
+/// assert_eq!(sum_of_range(3u64, 5), 12); // 3+4+5
+/// assert_eq!(sum_of_range(7u64, 7), 7); // 単点
+/// assert_eq!(sum_of_range(5u64, 3), 0); // 空区間（符号なしでも安全）
+/// assert_eq!(sum_of_range(-3i64, 3), 0); // 負を含む区間
+/// ```
+pub fn sum_of_range<T: Integer>(lo: T, hi: T) -> T {
+    sum_of_arith(lo, T::ONE, range_size(lo, hi).as_usize())
 }
 
 /// 初項 `a`、公比 `r`、項数 `n` の等比数列 a, ar, .., ar^(n-1) の総和。O(n)。
@@ -532,6 +547,38 @@ mod tests {
         assert_eq!(sum_of_arith(0u64, 1, n), 17_999_999_997_000_000_000);
         // 項数が奇数側の経路（n が奇数）も通す
         assert_eq!(sum_of_arith(0u64, 1, n + 1), 18_000_000_003_000_000_000);
+    }
+
+    // 区間 [lo, hi] の総和。空区間は 0、負を含む区間でも正しい
+    #[rstest]
+    #[case(1, 10, 55)] // 1+2+..+10
+    #[case(3, 5, 12)]
+    #[case(7, 7, 7)] // 単点
+    #[case(5, 3, 0)] // 空区間
+    #[case(-3, 3, 0)] // 負を含み総和 0
+    #[case(-5, -3, -12)] // 負のみ
+    fn sum_of_range_works(#[case] lo: i64, #[case] hi: i64, #[case] expected: i64) {
+        assert_eq!(sum_of_range(lo, hi), expected);
+        assert_eq!(sum_of_range(lo, hi), (lo..=hi).sum());
+    }
+
+    // 符号なし型でも lo > hi でアンダーフローしない
+    #[rstest]
+    #[case(2, 5, 14)]
+    #[case(5, 2, 0)]
+    fn sum_of_range_unsigned(#[case] lo: usize, #[case] hi: usize, #[case] expected: usize) {
+        assert_eq!(sum_of_range(lo, hi), expected);
+    }
+
+    // sum_of_arith_mod（区間 mod 版）と法を取る前の値が一致する
+    #[test]
+    fn sum_of_range_agrees_with_mod_version() {
+        for (lo, hi) in [(1i64, 10), (3, 5), (7, 7), (5, 3), (1, 100_000)] {
+            assert_eq!(
+                sum_of_range(lo, hi) % MOD,
+                sum_of_arith_mod(lo as i128, hi as i128)
+            );
+        }
     }
 
     // 等比数列和（非 mod）。公比 1 や負の公比でも破綻しない

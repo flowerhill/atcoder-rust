@@ -35,7 +35,7 @@ src/
 ├── grid.rs          # グリッド用の方向定数（DIRS4 / DIRS8）
 ├── imos.rs          # いもす法（imos_1d / imos_2d）
 ├── io.rs            # 出力ヘルパ（yn / print_lines など）
-├── math.rs          # Integer トレイト / 数列和（sum_of_arith・sum_of_geom）/ mod 演算（add_mod・modpow・sum_of_arith_mod・sum_of_geom_mod・Comb など）/ 桁変換
+├── math.rs          # Integer トレイト / 数列和（sum_of_arith・sum_of_range・sum_of_geom）/ mod 演算（add_mod・modpow・sum_of_arith_mod・sum_of_geom_mod・Comb など）/ 桁変換
 ├── pair.rs          # Pair<T>（成分ごとの加減算）
 ├── seq.rs           # 部分列判定 / 順列列挙 / 連長圧縮（run_length）
 ├── string.rs        # 回文判定など
