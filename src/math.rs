@@ -67,6 +67,52 @@ pub fn range_size<T: Integer>(lo: T, hi: T) -> T {
     }
 }
 
+/// 初項 `a`、公差 `d`、項数 `n` の等差数列 a, a+d, .., a+(n-1)d の総和 `n*a + d*n(n-1)/2`。
+/// `n(n-1)` を作る前に偶数側を 2 で割るので、答えが `T` に収まる限り途中で溢れない
+/// （符号なし型でもアンダーフローしない）。1+2+..+n は `sum_of_arith(1, 1, n)`。
+/// mod を取りたいときは `sum_of_arith_mod`（区間 [lo, hi] 版）を使う。
+///
+/// ```
+/// use atcoder_rust::math::sum_of_arith;
+/// assert_eq!(sum_of_arith(1u64, 1, 10), 55); // 1+2+..+10
+/// assert_eq!(sum_of_arith(2u64, 3, 4), 26); // 2+5+8+11
+/// assert_eq!(sum_of_arith(3i64, -2, 4), 0); // 3+1-1-3
+/// assert_eq!(sum_of_arith(5u64, 0, 3), 15); // 公差 0
+/// assert_eq!(sum_of_arith(7u64, 2, 0), 0); // 項数 0
+/// // n*(n-1) は u64 で溢れるが、先に 2 で約分するので答えは正しい
+/// assert_eq!(sum_of_arith(0u64, 1, 6_000_000_000), 17_999_999_997_000_000_000);
+/// ```
+pub fn sum_of_arith<T: Integer>(a: T, d: T, n: usize) -> T {
+    if n == 0 {
+        return T::ZERO;
+    }
+    let n = T::from_usize(n);
+    // n(n-1)/2 = 0+1+..+(n-1)。n と n-1 の偶数側を先に 2 で割る。
+    let steps = if n % T::TWO == T::ZERO {
+        (n / T::TWO) * (n - T::ONE)
+    } else {
+        n * ((n - T::ONE) / T::TWO)
+    };
+    a * n + d * steps
+}
+
+/// 初項 `a`、公比 `r`、項数 `n` の等比数列 a, ar, .., ar^(n-1) の総和。O(n)。
+/// `a(r^n - 1)/(r - 1)` の公式は `r == 1` で 0 除算になり、`r^n` も溢れやすいので、
+/// ホーナー法 `s ← s*r + a` で 1 項ずつ畳み込む（途中の値は常に答え以下）。
+/// mod を取るなら O(log n) の `sum_of_geom_mod` を使う。
+///
+/// ```
+/// use atcoder_rust::math::sum_of_geom;
+/// assert_eq!(sum_of_geom(1u64, 2, 10), 1023); // 2^10 - 1
+/// assert_eq!(sum_of_geom(2u64, 3, 4), 80); // 2+6+18+54
+/// assert_eq!(sum_of_geom(3i64, 1, 5), 15); // 公比 1 でも破綻しない
+/// assert_eq!(sum_of_geom(1i64, -2, 4), -5); // 1-2+4-8
+/// assert_eq!(sum_of_geom(7u64, 2, 0), 0); // 項数 0
+/// ```
+pub fn sum_of_geom<T: Integer>(a: T, r: T, n: usize) -> T {
+    (0..n).fold(T::ZERO, |sum, _| sum * r + a)
+}
+
 /// 素数 mod（AtCoder 頻出の 10^9+7）。
 pub const MOD: i64 = 1_000_000_007;
 
@@ -103,6 +149,25 @@ pub fn mul_mod(a: i64, b: i64) -> i64 {
     a * b % MOD
 }
 
+/// 整数区間 [lo, hi] の総和 (lo+hi)(hi-lo+1)/2 を mod `MOD` で返す（`lo > hi` なら 0）。
+/// 積を `i128` で厳密に計算してから mod を取るので、`lo`, `hi` が 10^18 規模でも
+/// オーバーフローしない（積は最大 ~2*10^36 で i128 に収まる）。逆元は不要。
+///
+/// ```
+/// use atcoder_rust::math::sum_of_arith_mod;
+/// assert_eq!(sum_of_arith_mod(1, 10), 55);
+/// assert_eq!(sum_of_arith_mod(3, 5), 12);
+/// assert_eq!(sum_of_arith_mod(7, 7), 7); // 単点
+/// assert_eq!(sum_of_arith_mod(5, 3), 0); // 空区間
+/// ```
+pub fn sum_of_arith_mod(lo: i128, hi: i128) -> i64 {
+    if lo > hi {
+        0
+    } else {
+        ((lo + hi) * (hi - lo + 1) / 2 % MOD as i128) as i64
+    }
+}
+
 /// `base^exp mod m` を繰り返し二乗法（バイナリ法）で計算する。O(log exp)。
 /// `m == 1` でも `1 % m == 0` となり破綻しない。`0^0 == 1` と定義する。
 /// `base` が負でも `base %= m` 後に `+ m` で非負へ寄せて扱う。`exp >= 0` が前提。
@@ -126,6 +191,31 @@ pub fn modpow(mut base: i64, mut exp: i64, m: i64) -> i64 {
         exp >>= 1;
     }
     result
+}
+
+/// 初項 `a`、公比 `r`、項数 `n` の等比数列の総和を mod `MOD` で返す。O(log n)。
+/// 公式 `a(r^n - 1)/(r - 1)` を使うが、分母が 0 になる `r ≡ 1 (mod MOD)` は
+/// 総和が `a * n` になるので先に分岐する（`MOD` が素数なのでそれ以外は逆元が存在する）。
+/// `a`, `r` は負や `MOD` 以上でもよい（内部で `[0, MOD)` に寄せるので、
+/// `r == 1` の判定がそのまま `r ≡ 1 (mod MOD)` の判定になる）。
+///
+/// ```
+/// use atcoder_rust::math::{sum_of_geom_mod, MOD};
+/// assert_eq!(sum_of_geom_mod(1, 2, 10), 1023); // 2^10 - 1
+/// assert_eq!(sum_of_geom_mod(2, 3, 4), 80); // 2+6+18+54
+/// assert_eq!(sum_of_geom_mod(3, 1, 5), 15); // 公比 1（分母が 0 になるので分岐で回避）
+/// assert_eq!(sum_of_geom_mod(3, MOD + 1, 5), 15); // r ≡ 1 (mod MOD) でも同じ
+/// assert_eq!(sum_of_geom_mod(1, 2, 0), 0); // 項数 0
+/// assert_eq!(sum_of_geom_mod(1, 2, 100), 976371284); // (2^100 - 1) mod MOD
+/// ```
+pub fn sum_of_geom_mod(a: i64, r: i64, n: usize) -> i64 {
+    let (a, r) = (a.rem_euclid(MOD), r.rem_euclid(MOD));
+    if r == 1 {
+        mul_mod(a, (n as i64) % MOD)
+    } else {
+        let ratio = mul_mod(sub_mod(modpow(r, n as i64, MOD), 1), modinv(r - 1, MOD));
+        mul_mod(a, ratio)
+    }
 }
 
 /// 素数 `m` を法とする `a` の逆元（フェルマーの小定理）。`m` は素数、`gcd(a, m) == 1` が前提。
@@ -420,6 +510,79 @@ mod tests {
     #[case(5, 2, 0)]
     fn range_size_unsigned(#[case] lo: usize, #[case] hi: usize, #[case] expected: usize) {
         assert_eq!(range_size(lo, hi), expected);
+    }
+
+    // 等差数列和（初項・公差・項数）。素朴なループと一致すること
+    #[rstest]
+    #[case(1, 1, 10, 55)] // 1+2+..+10
+    #[case(2, 3, 4, 26)] // 2+5+8+11
+    #[case(5, 0, 3, 15)] // 公差 0
+    #[case(7, 2, 0, 0)] // 項数 0
+    #[case(4, 5, 1, 4)] // 1 項なら初項そのもの
+    #[case(3, -2, 4, 0)] // 公差が負で総和 0
+    fn sum_of_arith_works(#[case] a: i64, #[case] d: i64, #[case] n: usize, #[case] expected: i64) {
+        assert_eq!(sum_of_arith(a, d, n), expected);
+        assert_eq!(sum_of_arith(a, d, n), (0..n as i64).map(|i| a + d * i).sum());
+    }
+
+    // n(n-1) が u64 を溢れる大きさでも、先に 2 で約分するので答えは正しい
+    #[test]
+    fn sum_of_arith_no_overflow_on_huge_n() {
+        let n = 6_000_000_000usize; // n*(n-1) ≈ 3.6*10^19 > u64::MAX
+        assert_eq!(sum_of_arith(0u64, 1, n), 17_999_999_997_000_000_000);
+        // 項数が奇数側の経路（n が奇数）も通す
+        assert_eq!(sum_of_arith(0u64, 1, n + 1), 18_000_000_003_000_000_000);
+    }
+
+    // 等比数列和（非 mod）。公比 1 や負の公比でも破綻しない
+    #[rstest]
+    #[case(1, 2, 10, 1023)] // 2^10 - 1
+    #[case(2, 3, 4, 80)] // 2+6+18+54
+    #[case(3, 1, 5, 15)] // 公比 1（除算公式なら 0 除算になるケース）
+    #[case(1, -2, 4, -5)] // 1-2+4-8
+    #[case(7, 2, 0, 0)] // 項数 0
+    #[case(7, 5, 1, 7)] // 1 項なら初項そのもの
+    #[case(0, 3, 5, 0)] // 初項 0
+    fn sum_of_geom_works(#[case] a: i64, #[case] r: i64, #[case] n: usize, #[case] expected: i64) {
+        assert_eq!(sum_of_geom(a, r, n), expected);
+    }
+
+    // 等比数列和 mod。素朴な O(n) 累積と一致し、r ≡ 1 でも逆元不要で正しい
+    #[rstest]
+    #[case(1, 2, 10, 1023)]
+    #[case(2, 3, 4, 80)]
+    #[case(3, 1, 5, 15)] // 公比 1
+    #[case(3, MOD + 1, 5, 15)] // r ≡ 1 (mod MOD)：r == 1 だけ弾く実装が壊れる境界
+    #[case(1, 2, 0, 0)] // 項数 0
+    #[case(1, 2, 100, 976371284)] // (2^100 - 1) mod MOD：分割統治の再帰が効く長さ
+    #[case(-1, 2, 3, MOD - 7)] // 初項が負でも [0, MOD) に寄る
+    fn sum_of_geom_mod_works(#[case] a: i64, #[case] r: i64, #[case] n: usize, #[case] expected: i64) {
+        assert_eq!(sum_of_geom_mod(a, r, n), expected);
+    }
+
+    // 分割統治（偶数長・奇数長の両経路）が素朴な累積と一致する
+    #[test]
+    fn sum_of_geom_mod_agrees_with_naive() {
+        let (a, r) = (5i64, 7i64);
+        let mut naive = 0;
+        let mut term = a % MOD;
+        for n in 0..50 {
+            assert_eq!(sum_of_geom_mod(a, r, n), naive, "n={n}");
+            naive = add_mod(naive, term);
+            term = mul_mod(term, r);
+        }
+    }
+
+    // 等差数列和 mod。空区間は 0、10^18 規模でも i128 でオーバーフローしない
+    #[rstest]
+    #[case(1, 10, 55)]
+    #[case(3, 5, 12)]
+    #[case(7, 7, 7)] // 単点
+    #[case(5, 3, 0)] // 空区間
+    #[case(1, 100_000, 49965)] // (1+10^5)*10^5/2 = 5000050000 mod (10^9+7)
+    #[case(1, 1_000_000_000_000_000_000, 1225)] // lo=1, hi=10^18: 積が i64 を溢れる領域
+    fn sum_of_arith_mod_works(#[case] lo: i128, #[case] hi: i128, #[case] expected: i64) {
+        assert_eq!(sum_of_arith_mod(lo, hi), expected);
     }
 
     // 桁分解（最上位桁が先頭）。n == 0 のときは [0]
