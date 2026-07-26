@@ -13,9 +13,17 @@ use superslice::Ext;
 //   use atcoder_rust::unionfind::UnionFind;
 //   use atcoder_rust::bsearch::{LowerBound, UpperBound};
 
+/// 解法本体。入力の読み取りは main に任せ、ここは純粋な計算に徹する
+/// (テストから直接呼べるようにするため)。
+fn solve() -> u64 {
+    todo!()
+}
+
 #[fastout]
 fn main() {
     input! {}
+
+    println!("{}", solve());
 }
 
 #[cfg(test)]
