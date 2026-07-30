@@ -10,6 +10,7 @@ pub mod imos;
 pub mod io;
 pub mod math;
 pub mod pair;
+pub mod refops;
 pub mod seq;
 pub mod string;
 pub mod sumunionfind;

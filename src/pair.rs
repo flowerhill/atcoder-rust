@@ -1,3 +1,4 @@
+use crate::refops::forward_ref_binop;
 use num::traits::{Signed, ToPrimitive};
 use std::ops::{Add, Mul, Sub};
 
@@ -13,6 +14,7 @@ impl<T: Add<Output = T>> Add for Pair<T> {
         Pair(self.0 + rhs.0, self.1 + rhs.1)
     }
 }
+forward_ref_binop!(impl<T> Add, add for Pair<T>, Pair<T> where T: Copy + Add<Output = T>);
 
 impl<T: Sub<Output = T>> Sub for Pair<T> {
     type Output = Pair<T>;
@@ -22,6 +24,7 @@ impl<T: Sub<Output = T>> Sub for Pair<T> {
         Pair(self.0 - rhs.0, self.1 - rhs.1)
     }
 }
+forward_ref_binop!(impl<T> Sub, sub for Pair<T>, Pair<T> where T: Copy + Sub<Output = T>);
 
 impl<T: Mul<Output = T> + Sub<Output = T>> Pair<T> {
     /// 2 次元ベクトルの外積（z 成分）。0 なら 2 ベクトルは平行。
@@ -153,6 +156,23 @@ mod tests {
     fn euclid_dist_matches_sqrt_of_dist2() {
         let (a, b) = (Pair(0, 0), Pair(3, 4));
         assert_eq!(a.euclid_dist(b), (a.euclid_dist2(b) as f64).sqrt());
+    }
+
+    /// forward_ref_binop で生やした参照版。値渡しと同じ結果になる。
+    #[test]
+    fn add_and_sub_accept_references() {
+        let (a, b) = (Pair(1, 2), Pair(3, 4));
+        assert_eq!(&a + b, Pair(4, 6));
+        assert_eq!(a + &b, Pair(4, 6));
+        assert_eq!(&a + &b, Pair(4, 6));
+        assert_eq!(&a - &b, Pair(-2, -2));
+    }
+
+    /// 参照版を入れた動機: Item が &Pair になるイテレータをそのまま畳み込める。
+    #[test]
+    fn folds_over_an_iterator_of_references() {
+        let vs = vec![Pair(1, 1), Pair(2, 2), Pair(3, 3)];
+        assert_eq!(vs.iter().fold(Pair(0, 0), |acc, p| acc + p), Pair(6, 6));
     }
 
     #[test]
