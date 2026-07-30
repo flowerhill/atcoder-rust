@@ -395,25 +395,31 @@ pub fn factorize(mut n: i64) -> Vec<(i64, u32)> {
 }
 
 /// `n` の約数を昇順で全列挙する。`n >= 1`。O(√n)。
+/// `Integer` を実装する任意の整数型で使える。約数は i と n/i のペアで現れ
+/// 片方は必ず √n 以下なので、i を √n まで回して両側を集める。
+/// 答えの計算に n^3 などが要る場合は `i128` で呼べばキャストなしで書ける
+/// （ただしループ内が 128bit 除算になり i64 の 2〜3 倍かかる）。
 ///
 /// ```
 /// use atcoder_rust::math::divisors;
 /// assert_eq!(divisors(12), vec![1, 2, 3, 4, 6, 12]);
 /// assert_eq!(divisors(1), vec![1]);
 /// assert_eq!(divisors(7), vec![1, 7]);
+/// assert_eq!(divisors(36i128), vec![1, 2, 3, 4, 6, 9, 12, 18, 36]);
+/// assert_eq!(divisors(16u64), vec![1, 2, 4, 8, 16]); // 平方数でも √n を重複させない
 /// ```
-pub fn divisors(n: i64) -> Vec<i64> {
+pub fn divisors<T: Integer>(n: T) -> Vec<T> {
     let mut small = Vec::new();
     let mut large = Vec::new();
-    let mut i = 1;
+    let mut i = T::ONE;
     while i * i <= n {
-        if n % i == 0 {
+        if n % i == T::ZERO {
             small.push(i);
             if i != n / i {
                 large.push(n / i);
             }
         }
-        i += 1;
+        i += T::ONE;
     }
     large.reverse();
     small.extend(large);
