@@ -6,6 +6,7 @@
 //!   cargo run -q --bin bundle | pbcopy   # クリップボードへ
 //!
 //! 仕組み:
+//!   - 1 行目にライブラリの出典 URL をコメントで置く
 //!   - `main.rs` 内の `atcoder_rust::<mod>` 参照を集める
 //!   - 参照されたモジュール(`src/<mod>.rs`)を、モジュール間依存(`crate::<mod>`)も
 //!     辿って収集する
@@ -19,6 +20,10 @@ use std::path::{Path, PathBuf};
 
 /// クレートのルートディレクトリ(コンパイル時に確定)。
 const CRATE_DIR: &str = env!("CARGO_MANIFEST_DIR");
+
+/// 提出コードの 1 行目に置くライブラリの出典(提出画面からライブラリを辿れるように)。
+/// Haskell テンプレ `tools/Bundle.hs` の `bundleHeader` と同じ形式。
+const BUNDLE_HEADER: &str = "// https://github.com/flowerhill/atcoder-rust";
 
 /// クレートの `src/` ディレクトリの絶対パスを返す。
 fn src_dir() -> PathBuf {
@@ -195,6 +200,11 @@ fn main() {
 
     // 出力を組み立てる。
     let mut out = String::new();
+    // 0. ライブラリの出典(提出コードから辿れるように)。
+    //    直後に空行を置いて `use` の並びから視覚的に切り離す(rustfmt は
+    //    import を並べ替えてもこの行を先頭に残す)。
+    out.push_str(BUNDLE_HEADER);
+    out.push_str("\n\n");
     out.push_str(main_src.trim_end());
     out.push('\n');
     for (name, body) in &module_src {

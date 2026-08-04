@@ -31,7 +31,7 @@ src/
 │
 ├── bsearch.rs       # 二分探索 / lower_bound / upper_bound
 ├── cmp.rs           # chmax / chmin
-├── graph.rs         # 隣接リスト構築（build_undirected_graph）/ dfs / bfs / dijkstra / 木 DP（tree_order・tree_dp）
+├── graph.rs         # 隣接リスト構築（build_undirected_graph）/ dfs / bfs / dijkstra / ワーシャル・フロイド（warshall_floyd）/ 木 DP（tree_order・tree_dp）
 ├── grid.rs          # グリッド用の方向定数（DIRS4 / DIRS8）
 ├── imos.rs          # いもす法（imos_1d / imos_2d）
 ├── io.rs            # 出力ヘルパ（yn / print_lines など）
@@ -75,6 +75,10 @@ cargo run -q --bin bundle | pbcopy   # そのままクリップボードへ
 末尾に `mod <名> { .. }` として展開した 1 ファイルを出力する。出てきたものを
 そのまま AtCoder に貼り付ければよい。`#[cfg(test)]` のテストは除去され、外部
 crate の `use` はそのまま残る。
+
+1 行目には出典としてこのリポジトリの URL がコメントで入る（提出コードから
+ライブラリを辿れるようにするため）。変更する場合は `src/bin/bundle.rs` の
+`BUNDLE_HEADER`。
 
 ## テスト
 
