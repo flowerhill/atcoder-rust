@@ -22,8 +22,9 @@ use std::path::{Path, PathBuf};
 const CRATE_DIR: &str = env!("CARGO_MANIFEST_DIR");
 
 /// 提出コードの 1 行目に置くライブラリの出典(提出画面からライブラリを辿れるように)。
-/// Haskell テンプレ `tools/Bundle.hs` の `bundleHeader` と同じ形式。
-const BUNDLE_HEADER: &str = "// https://github.com/flowerhill/atcoder-rust";
+/// Haskell テンプレ `tools/Bundle.hs` の `bundleHeader` と同じ役割。
+const BUNDLE_HEADER: &str =
+    "// このコードが使う自作ライブラリのソース: https://github.com/flowerhill/atcoder-rust";
 
 /// クレートの `src/` ディレクトリの絶対パスを返す。
 fn src_dir() -> PathBuf {
