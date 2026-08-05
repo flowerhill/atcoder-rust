@@ -1,3 +1,4 @@
+use crate::cmp::chmin;
 use itertools::Itertools;
 use std::collections::{HashSet, VecDeque};
 
@@ -39,6 +40,32 @@ pub fn dfsw(g: &Vec<Vec<(usize, i64)>>, visited: &mut Vec<Option<i64>>, v0: usiz
             dfsw(g, visited, v);
         }
     }
+}
+
+/// 重みなしグラフ `g`(隣接リスト)を `start` から BFS し、各ノードへの最短距離(辺数)を返す。
+/// 到達できないノードは `None`。再帰を使わないので深いグラフでも安全。O(V + E)。
+///
+/// ```
+/// use atcoder_rust::graph::{build_undirected_graph, bfs_dist};
+/// // 0-1-2 が連結、3 は孤立
+/// let g = build_undirected_graph(4, &[(0, 1), (1, 2)]);
+/// assert_eq!(bfs_dist(&g, 0), vec![Some(0), Some(1), Some(2), None]);
+/// ```
+pub fn bfs_dist(g: &[Vec<usize>], start: usize) -> Vec<Option<usize>> {
+    let mut dist = vec![None; g.len()];
+    dist[start] = Some(0);
+    let mut queue = VecDeque::from(vec![start]);
+
+    while let Some(v) = queue.pop_front() {
+        let d = dist[v].unwrap();
+        for &u in &g[v] {
+            if dist[u].is_none() {
+                dist[u] = Some(d + 1);
+                queue.push_back(u);
+            }
+        }
+    }
+    dist
 }
 
 /// 重み付きグラフを BFS し、`queue` を消費しながら各ノードへの距離を `visited` に記録する。
@@ -153,6 +180,32 @@ pub fn tree_dp<T>(
     dp
 }
 
+/// 木 `g` の直径(最も離れた 2 頂点間の辺数)と、その両端の頂点を返す。O(N)。
+///
+/// 適当な頂点から最遠の頂点 a を取り、a から最遠の頂点 b を取る 2 回 BFS。
+/// `g` は木(連結・閉路なし)であること。
+///
+/// ```
+/// use atcoder_rust::graph::{build_undirected_graph, tree_diameter};
+/// // 木: 0-1, 1-2, 1-3 （直径は 2-1-3 などの 2 辺）
+/// let g = build_undirected_graph(4, &[(0, 1), (1, 2), (1, 3)]);
+/// let (d, _) = tree_diameter(&g);
+/// assert_eq!(d, 2);
+/// ```
+pub fn tree_diameter(g: &[Vec<usize>]) -> (usize, (usize, usize)) {
+    let farthest = |start: usize| -> (usize, usize) {
+        bfs_dist(g, start)
+            .into_iter()
+            .enumerate()
+            .filter_map(|(v, d)| d.map(|d| (d, v)))
+            .max()
+            .expect("tree_diameter: 空グラフには直径がない")
+    };
+    let (_, a) = farthest(0);
+    let (d, b) = farthest(a);
+    (d, (a, b))
+}
+
 /// 始点 `start` から各ノードへの最短距離を返す(ダイクストラ法、O(V^2))。
 ///
 /// 到達不能なノードの距離は `i64::MAX`。辺の重みは非負であること。
@@ -187,6 +240,37 @@ pub fn dijkstra(g: &[Vec<(usize, i64)>], start: usize) -> Vec<i64> {
     dist
 }
 
+/// 全点対間最短距離を隣接行列上で in-place に求める(ワーシャル・フロイド法、O(V^3))。
+///
+/// `d[i][j]` には辺 i→j のコスト(辺が無ければ `i64::MAX`、`d[i][i]` は 0)を入れておく。
+/// 負辺があっても動くが、負閉路があると結果は不定。
+///
+/// ```
+/// use atcoder_rust::graph::warshall_floyd;
+/// // 0 -1- 1 -2- 2、0-2 に直通辺なし
+/// let inf = i64::MAX;
+/// let mut d = vec![vec![0, 1, inf], vec![1, 0, 2], vec![inf, 2, 0]];
+/// warshall_floyd(&mut d);
+/// assert_eq!(d[0][2], 3);
+/// ```
+pub fn warshall_floyd(d: &mut [Vec<i64>]) {
+    let n = d.len();
+    for k in 0..n {
+        for i in 0..n {
+            if d[i][k] == i64::MAX {
+                continue;
+            }
+            for j in 0..n {
+                if d[k][j] == i64::MAX {
+                    continue;
+                }
+                let via = d[i][k] + d[k][j];
+                chmin(&mut d[i][j], via);
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -219,6 +303,35 @@ mod tests {
         let mut queue = VecDeque::from(vec![0]);
         bfsw(&g, &mut visited, &mut queue);
         assert_eq!(visited, vec![Some(0), Some(2), Some(4), Some(3)]);
+    }
+
+    #[test]
+    fn bfs_dist_unweighted_shortest_edges() {
+        // 0-1, 0-2, 1-3, 2-3 （3 へは 2 通りあるが最短は 2 辺）、4 は孤立
+        let g = build_undirected_graph(5, &[(0, 1), (0, 2), (1, 3), (2, 3)]);
+        assert_eq!(
+            bfs_dist(&g, 0),
+            vec![Some(0), Some(1), Some(1), Some(2), None]
+        );
+    }
+
+    #[test]
+    fn bfs_dist_deep_path_no_stack_overflow() {
+        // 10^5 頂点のパスでも落ちない
+        let n = 100_000;
+        let edges: Vec<(usize, usize)> = (0..n - 1).map(|i| (i, i + 1)).collect();
+        let g = build_undirected_graph(n, &edges);
+        assert_eq!(bfs_dist(&g, 0)[n - 1], Some(n - 1));
+    }
+
+    // 直径の端点が根 0 と一致しない木でも、2 回 BFS で正しく取れる
+    #[test]
+    fn tree_diameter_two_bfs() {
+        // 木: 0-1, 1-2, 2-3, 2-4 （直径は 0-1-2-3 の 3 辺）
+        let g = build_undirected_graph(5, &[(0, 1), (1, 2), (2, 3), (2, 4)]);
+        let (d, (a, b)) = tree_diameter(&g);
+        assert_eq!(d, 3);
+        assert_eq!(bfs_dist(&g, a)[b], Some(3));
     }
 
     #[test]
@@ -278,5 +391,21 @@ mod tests {
             vec![],
         ];
         assert_eq!(dijkstra(&g, start), expected);
+    }
+
+    // 直通辺より迂回のほうが安いケースと、到達不能(MAX)が残るケース
+    #[test]
+    fn warshall_floyd_shortest_paths() {
+        let inf = i64::MAX;
+        // 0-1(1), 1-2(2), 0-2(10) の無向グラフ + 孤立点 3
+        let mut d = vec![
+            vec![0, 1, 10, inf],
+            vec![1, 0, 2, inf],
+            vec![10, 2, 0, inf],
+            vec![inf, inf, inf, 0],
+        ];
+        warshall_floyd(&mut d);
+        assert_eq!(d[0][2], 3); // 直通 10 より 0->1->2 の 3
+        assert_eq!(d[0][3], inf); // 到達不能はオーバーフローせず MAX のまま
     }
 }

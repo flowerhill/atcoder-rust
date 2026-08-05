@@ -31,7 +31,7 @@ src/
 │
 ├── bsearch.rs       # 二分探索 / lower_bound / upper_bound
 ├── cmp.rs           # chmax / chmin
-├── graph.rs         # 隣接リスト構築（build_undirected_graph）/ dfs / bfs / dijkstra / ワーシャル・フロイド（warshall_floyd）/ 木 DP（tree_order・tree_dp）
+├── graph.rs         # 隣接リスト構築（build_undirected_graph）/ dfs / bfs（bfs_dist）/ dijkstra / ワーシャル・フロイド（warshall_floyd）/ 木 DP（tree_order・tree_dp）/ 木の直径（tree_diameter）
 ├── grid.rs          # グリッド用の方向定数（DIRS4 / DIRS8）
 ├── imos.rs          # いもす法（imos_1d / imos_2d）
 ├── io.rs            # 出力ヘルパ（yn / print_lines など）
