@@ -32,13 +32,13 @@ src/
 ├── bsearch.rs       # 二分探索 / lower_bound / upper_bound
 ├── cmp.rs           # chmax / chmin
 ├── graph.rs         # 隣接リスト構築（build_undirected_graph）/ dfs / bfs（bfs_dist）/ dijkstra / ワーシャル・フロイド（warshall_floyd）/ 木 DP（tree_order・tree_dp）/ 木の直径（tree_diameter）
-├── grid.rs          # グリッド用の方向定数（DIRS4 / DIRS8）
+├── grid.rs          # グリッド用の方向定数（DIRS4 / DIRS8）/ 転置（transpose）
 ├── imos.rs          # いもす法（imos_1d / imos_2d）
-├── io.rs            # 出力ヘルパ（yn / print_lines など）
+├── io.rs            # 出力ヘルパ（yn / print_lines / format_grid・print_grid）
 ├── math.rs          # Integer トレイト / 数列和（sum_of_arith・sum_of_range・sum_of_geom）/ mod 演算（add_mod・modpow・sum_of_arith_mod・sum_of_geom_mod・Comb など）/ 桁変換
 ├── pair.rs          # Pair<T>（成分ごとの加減算）
 ├── refops.rs        # 値渡しの演算子 impl から参照版（&T op U など）を生やすマクロ
-├── seq.rs           # 部分列判定 / 順列列挙 / 連長圧縮（run_length）
+├── seq.rs           # 部分列判定 / 辞書順最小の部分列（smallest_subsequence）/ 順列列挙 / 連長圧縮（run_length）
 ├── string.rs        # 回文判定など
 ├── sumunionfind.rs  # 和の制約 x_a + x_b = c 用の符号付き Union-Find（SumUnionFind）
 ├── unionfind.rs     # Union-Find

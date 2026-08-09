@@ -38,6 +38,33 @@ pub fn run_length<T: PartialEq>(seq: &[T]) -> Vec<(&T, usize)> {
     })
 }
 
+/// `seq` の長さ `k` の部分列のうち、辞書順最小のものを返す。
+///
+/// 単調スタック法。左から要素を積みながら、「スタック末尾より小さい要素が来た」かつ
+/// 「末尾を捨てても残りの要素数で長さ `k` を満たせる」あいだ末尾を捨てる。
+/// `k <= seq.len()` であること(足りないと長さ `k` 未満の列が返る)。
+///
+/// ```
+/// use atcoder_rust::seq::smallest_subsequence;
+///
+/// let s: Vec<char> = "atcoder".chars().collect();
+/// assert_eq!(smallest_subsequence(&s, 3), vec!['a', 'c', 'd']);
+/// assert_eq!(smallest_subsequence(&[3, 1, 2], 2), vec![1, 2]);
+/// ```
+pub fn smallest_subsequence<T: Ord + Copy>(seq: &[T], k: usize) -> Vec<T> {
+    seq.iter()
+        .enumerate()
+        .fold(Vec::with_capacity(k), |mut stack, (i, &x)| {
+            while stack.len() + (seq.len() - i) > k && stack.last().is_some_and(|&top| top > x) {
+                stack.pop();
+            }
+            if stack.len() < k {
+                stack.push(x);
+            }
+            stack
+        })
+}
+
 /// 文字の多重集合 `cs` から、重複を除いた全順列を辞書順で生成する。
 pub fn distinct_permutation(mut cs: Vec<char>) -> Vec<String> {
     cs.sort();
@@ -82,6 +109,23 @@ mod tests {
     fn run_length_preserves_total_len() {
         let seq = ['o', 'o', 'x', 'o', 'x', 'x', 'x'];
         assert_eq!(run_length(&seq).iter().map(|&(_, c)| c).sum::<usize>(), seq.len());
+    }
+
+    #[rstest]
+    #[case("atcoder", 3, "acd")] // サンプル1
+    #[case("kittyonyourlap", 5, "inlap")] // サンプル2
+    #[case("abc", 3, "abc")] // k = n なら元の列そのまま
+    #[case("cba", 3, "cba")] // k = n は降順でも並べ替えない
+    #[case("cba", 1, "a")] // 降順なら最後の 1 文字
+    #[case("abc", 1, "a")] // 昇順なら先頭の 1 文字
+    #[case("aaa", 2, "aa")] // 全て同じ(等しい要素は捨てない)
+    #[case("bab", 2, "ab")] // 末尾の b は残り個数の制約で必ず採用
+    fn smallest_subsequence_cases(#[case] s: &str, #[case] k: usize, #[case] expected: &str) {
+        let cs: Vec<char> = s.chars().collect();
+        assert_eq!(
+            smallest_subsequence(&cs, k).into_iter().collect::<String>(),
+            expected
+        );
     }
 
     #[test]
