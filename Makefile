@@ -3,6 +3,16 @@ BIN := atcoder-rust
 
 # --- 単体ターゲット ---
 
+# ユニットテスト（main.rs の #[cfg(test)] mod tests + 自作ライブラリ）。
+# doctest はライブラリ全体で数十秒かかるので、解答ループ用のこちらでは走らせない。
+# 特定のケースだけ流すときは引数で絞る: make ut T=solve_cases
+ut unit:
+	cargo test -q --lib --bins $(if $(T),-- $(T))
+
+# doctest 込みで全部走らせる（ライブラリ側に手を入れたとき用）
+unit-all:
+	cargo test -q
+
 # oj でサンプルテスト（release ビルドした実行ファイルで実行）
 test:
 	cargo build -q --release --bin $(BIN)
@@ -41,6 +51,8 @@ clean:
 	cargo clean
 
 help:
+	@echo "make ut            - ユニットテスト (cargo test, doctest 除く)  例: make ut T=solve_cases"
+	@echo "make unit-all      - ユニットテスト + doctest"
 	@echo "make test          - サンプルテスト (oj)"
 	@echo "make bundle        - submit.rs を生成"
 	@echo "make tb            - test → bundle"
@@ -49,4 +61,4 @@ help:
 	@echo "make verify-bundle - submit.rs を整形し単体でコンパイルできるか確認"
 	@echo "make clean         - submit.rs と target を削除"
 
-.PHONY: test bundle verify-bundle tb test-bundle submit submit-force clean help
+.PHONY: ut unit unit-all test bundle verify-bundle tb test-bundle submit submit-force clean help
