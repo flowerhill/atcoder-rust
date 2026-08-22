@@ -29,7 +29,7 @@ src/
 ├── bin/
 │   └── bundle.rs    # 提出用バンドラ
 │
-├── bsearch.rs       # 二分探索 / lower_bound / upper_bound
+├── bsearch.rs       # 二分探索 / lower_bound / upper_bound / 前後の要素（neighbors）
 ├── cmp.rs           # chmax / chmin
 ├── cumsum.rs        # 累積和（cumsum）/ 区間和の取り出し（range_sum）
 ├── graph.rs         # 隣接リスト構築（build_undirected_graph）/ dfs / bfs（bfs_dist）/ dijkstra / ワーシャル・フロイド（warshall_floyd）/ 木 DP（tree_order・tree_dp）/ 木の直径（tree_diameter）
