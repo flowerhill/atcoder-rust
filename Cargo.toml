@@ -16,3 +16,7 @@ indexing = "0.4.1"
 superslice = "1.0.0"
 petgraph = "0.6.5"
 rstest = "0.26.1"
+
+# テスト専用（提出ファイルには載らない）
+[dev-dependencies]
+quickcheck = "1.0.3"
