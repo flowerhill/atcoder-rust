@@ -4,6 +4,7 @@
 
 pub mod bsearch;
 pub mod cmp;
+pub mod cumsum;
 pub mod graph;
 pub mod grid;
 pub mod imos;
