@@ -28,13 +28,11 @@ pub fn bisect_rev<T: Integer>(l: T, r: T, mut f: impl FnMut(&T) -> bool) -> (T, 
 
 /// 昇順ソート済みスライスに対する lower bound 操作。
 pub trait LowerBound<T> {
-    type Item: Ord;
     /// `x` 以上の値が最初に現れる位置を返す(無ければ `len` = 挿入位置)。
     fn lower_bound(&self, x: &T) -> usize;
 }
 
 impl<T: Ord> LowerBound<T> for [T] {
-    type Item = T;
     fn lower_bound(&self, x: &T) -> usize {
         // bisect は f(l)=false を前提とするので、空 or 先頭が既に x 以上なら別扱い
         if self.first().is_none_or(|h| h >= x) {
@@ -47,13 +45,11 @@ impl<T: Ord> LowerBound<T> for [T] {
 
 /// 昇順ソート済みスライスに対する upper bound 操作。
 pub trait UpperBound<T> {
-    type Item: Ord;
     /// `x` より大きい値が最初に現れる位置を返す(無ければ `len` = 挿入位置)。
     fn upper_bound(&self, x: &T) -> usize;
 }
 
 impl<T: Ord> UpperBound<T> for [T] {
-    type Item = T;
     fn upper_bound(&self, x: &T) -> usize {
         // 空 or 先頭が既に x より大きいなら別扱い
         if self.first().is_none_or(|h| h > x) {
