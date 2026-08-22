@@ -60,6 +60,38 @@ impl<T: Ord> UpperBound<T> for [T] {
     }
 }
 
+/// `neighbors` が返す片側の要素 `(添字, 値)`。端をはみ出す側は `None`。
+pub type Neighbor<'a, T> = Option<(usize, &'a T)>;
+
+/// 昇順ソート済みスライスから、`x` を挟む前後の要素を取り出す操作。
+pub trait Neighbors<T> {
+    /// `(x 未満で最大の要素, x 以上で最小の要素)` を `(添字, 値)` の組で返す。
+    /// 端をはみ出す側は `None`（`x` が全要素より小さい / 大きい場合）。
+    ///
+    /// `x` と等しい要素があるときは、右側にその最初の 1 つが入る。
+    ///
+    /// ```
+    /// use atcoder_rust::bsearch::Neighbors;
+    ///
+    /// let v = vec![10, 20, 20, 30];
+    /// assert_eq!(v.neighbors(&25), (Some((2, &20)), Some((3, &30))));
+    /// assert_eq!(v.neighbors(&20), (Some((0, &10)), Some((1, &20)))); // 一致は右側
+    /// assert_eq!(v.neighbors(&5), (None, Some((0, &10)))); // 左端の外
+    /// assert_eq!(v.neighbors(&99), (Some((3, &30)), None)); // 右端の外
+    /// ```
+    fn neighbors(&self, x: &T) -> (Neighbor<'_, T>, Neighbor<'_, T>);
+}
+
+impl<T: Ord> Neighbors<T> for [T] {
+    fn neighbors(&self, x: &T) -> (Neighbor<'_, T>, Neighbor<'_, T>) {
+        let i = self.lower_bound(x);
+        (
+            i.checked_sub(1).map(|j| (j, &self[j])),
+            self.get(i).map(|v| (i, v)),
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -121,6 +153,46 @@ mod tests {
         let v: Vec<i32> = vec![];
         assert_eq!(v.lower_bound(x), 0);
         assert_eq!(v.upper_bound(x), 0);
+    }
+
+    #[rstest]
+    #[case(0, None, Some((0, 1)))] // 全要素より小さい → 左は無し
+    #[case(6, Some((5, 5)), None)] // 全要素より大きい → 右は無し
+    #[case(4, Some((4, 3)), Some((5, 5)))] // 存在しない値は前後で挟む
+    #[case(2, Some((0, 1)), Some((1, 2)))] // 一致する値は右側（重複の先頭）
+    #[case(1, None, Some((0, 1)))] // 先頭と一致 → 左は無し
+    fn neighbors_cases(
+        #[case] x: i32,
+        #[case] lower: Option<(usize, i32)>,
+        #[case] upper: Option<(usize, i32)>,
+    ) {
+        let v = vec![1, 2, 2, 2, 3, 5];
+        let to_ref = |e: Option<(usize, i32)>| e.map(|(i, _)| (i, &v[i]));
+        assert_eq!(v.neighbors(&x), (to_ref(lower), to_ref(upper)));
+        // 値そのものも期待通りか（添字だけ合っていて値が違う取り違えを弾く）
+        assert_eq!(v.neighbors(&x).0.map(|(_, &e)| e), lower.map(|(_, e)| e));
+        assert_eq!(v.neighbors(&x).1.map(|(_, &e)| e), upper.map(|(_, e)| e));
+    }
+
+    // 空スライスでは前後どちらも存在しない
+    #[test]
+    fn neighbors_on_empty() {
+        let v: Vec<i32> = vec![];
+        assert_eq!(v.neighbors(&1), (None, None));
+    }
+
+    // 右側は lower_bound、左側はその 1 つ手前という関係が常に成り立つ
+    #[rstest]
+    #[case(0)]
+    #[case(2)]
+    #[case(4)]
+    #[case(9)]
+    fn neighbors_agree_with_lower_bound(#[case] x: i32) {
+        let v = vec![1, 2, 2, 2, 3, 5];
+        let i = v.lower_bound(&x);
+        let (lower, upper) = v.neighbors(&x);
+        assert_eq!(upper.map(|(j, _)| j), (i < v.len()).then_some(i));
+        assert_eq!(lower.map(|(j, _)| j), i.checked_sub(1));
     }
 
     // [lower, upper) の幅 = その値の個数
