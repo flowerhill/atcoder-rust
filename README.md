@@ -32,7 +32,7 @@ src/
 ├── bsearch.rs       # 二分探索 / lower_bound / upper_bound / 前後の要素（neighbors）
 ├── cmp.rs           # chmax / chmin
 ├── cumsum.rs        # 累積和（cumsum）/ 区間和の取り出し（range_sum）
-├── graph.rs         # 隣接リスト構築（build_undirected_graph）/ dfs / bfs（bfs_dist）/ dijkstra / ワーシャル・フロイド（warshall_floyd）/ 木 DP（tree_order・tree_dp）/ 木の直径（tree_diameter）
+├── graph.rs         # 隣接リスト構築（build_undirected_graph・build_undirected_weighted_graph）/ dfs / bfs（bfs_dist）/ ダイクストラ（dijkstra: 二分ヒープ・重み型 generic）/ ワーシャル・フロイド（warshall_floyd）/ 木 DP（tree_order・tree_dp）/ 木の直径（tree_diameter）
 ├── grid.rs          # グリッド用の方向定数（DIRS4 / DIRS8）/ 盤面（Grid: (r,c) 添字・通し番号 index/coord・4 近傍 neighbors4）/ 転置（transpose）
 ├── imos.rs          # いもす法（imos_1d / imos_2d）
 ├── io.rs            # 出力ヘルパ（yn / print_lines / タプルの出力 format_tuples・print_tuples / format_grid・print_grid）

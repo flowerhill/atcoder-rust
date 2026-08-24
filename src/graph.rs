@@ -1,6 +1,9 @@
 use crate::cmp::chmin;
 use itertools::Itertools;
-use std::collections::{HashSet, VecDeque};
+use num::traits::Zero;
+use std::cmp::Reverse;
+use std::ops::Add;
+use std::collections::{BinaryHeap, HashSet, VecDeque};
 
 /// 無向辺のリストから n 頂点の隣接リストを作る(0-indexed)。各辺を両方向に張る。
 ///
@@ -14,6 +17,25 @@ pub fn build_undirected_graph(n: usize, edges: &[(usize, usize)]) -> Vec<Vec<usi
     for &(a, b) in edges {
         g[a].push(b);
         g[b].push(a);
+    }
+    g
+}
+
+/// 重み付き無向辺のリストから n 頂点の隣接リストを作る(0-indexed)。各辺を両方向に張る。
+///
+/// ```
+/// use atcoder_rust::graph::build_undirected_weighted_graph;
+/// let g = build_undirected_weighted_graph(3, &[(0, 1, 5), (1, 2, 7)]);
+/// assert_eq!(g, vec![vec![(1, 5)], vec![(0, 5), (2, 7)], vec![(1, 7)]]);
+/// ```
+pub fn build_undirected_weighted_graph<W: Copy>(
+    n: usize,
+    edges: &[(usize, usize, W)],
+) -> Vec<Vec<(usize, W)>> {
+    let mut g = vec![vec![]; n];
+    for &(a, b, w) in edges {
+        g[a].push((b, w));
+        g[b].push((a, w));
     }
     g
 }
@@ -206,37 +228,38 @@ pub fn tree_diameter(g: &[Vec<usize>]) -> (usize, (usize, usize)) {
     (d, (a, b))
 }
 
-/// 始点 `start` から各ノードへの最短距離を返す(ダイクストラ法、O(V^2))。
+/// 始点 `start` から各ノードへの最短距離を返す(ダイクストラ法、O((V + E) log V))。
+/// 到達できないノードは `None`。辺の重みは非負であること。
 ///
-/// 到達不能なノードの距離は `i64::MAX`。辺の重みは非負であること。
-pub fn dijkstra(g: &[Vec<(usize, i64)>], start: usize) -> Vec<i64> {
-    let n = g.len();
-    let mut dist = vec![i64::MAX; n];
-    dist[start] = 0;
-    let mut visited = vec![false; n];
+/// ```
+/// use atcoder_rust::graph::{build_undirected_weighted_graph, dijkstra};
+/// // 0 -1- 1 -2- 2、0-2 に直通辺(10)あり。孤立点 3 は到達不能。
+/// let g = build_undirected_weighted_graph(4, &[(0, 1, 1), (1, 2, 2), (0, 2, 10)]);
+/// assert_eq!(dijkstra(&g, 0), vec![Some(0), Some(1), Some(3), None]);
+/// ```
+pub fn dijkstra<W: Copy + Ord + Add<Output = W> + Zero>(
+    g: &[Vec<(usize, W)>],
+    start: usize,
+) -> Vec<Option<W>> {
+    let mut dist = vec![None; g.len()];
+    dist[start] = Some(W::zero());
+    // (距離, 頂点) を距離の小さい順に取り出す
+    let mut heap = BinaryHeap::from(vec![Reverse((W::zero(), start))]);
 
-    for _ in 0..n {
-        let mut min_dist = i64::MAX;
-        let mut min_node = 0;
-
-        // 未訪問のノードの中で最小距離のものを探す
-        for i in 0..n {
-            if !visited[i] && dist[i] < min_dist {
-                min_dist = dist[i];
-                min_node = i;
-            }
+    while let Some(Reverse((d, v))) = heap.pop() {
+        // 既により短い距離で確定済みなら、古い要素なので捨てる
+        if dist[v].is_some_and(|best| best < d) {
+            continue;
         }
-
-        visited[min_node] = true;
-
-        // 隣接ノードの距離を更新
-        for &(v, w) in &g[min_node] {
-            if !visited[v] {
-                dist[v] = dist[v].min(dist[min_node] + w);
+        for &(u, w) in &g[v] {
+            let nd = d + w;
+            // Option の derive Ord は None < Some なので chmin は使えない
+            if dist[u].is_none_or(|best| nd < best) {
+                dist[u] = Some(nd);
+                heap.push(Reverse((nd, u)));
             }
         }
     }
-
     dist
 }
 
@@ -380,9 +403,9 @@ mod tests {
 
     // 重み付き有向グラフ上の dijkstra
     #[rstest]
-    #[case(0, vec![0, 1, 3, 4])]
-    #[case(1, vec![i64::MAX, 0, 2, 3])]
-    fn dijkstra_shortest_paths(#[case] start: usize, #[case] expected: Vec<i64>) {
+    #[case(0, vec![Some(0), Some(1), Some(3), Some(4)])]
+    #[case(1, vec![None, Some(0), Some(2), Some(3)])]
+    fn dijkstra_shortest_paths(#[case] start: usize, #[case] expected: Vec<Option<i64>>) {
         // 0->1(1), 1->2(2), 2->3(1), 0->2(5)
         let g = vec![
             vec![(1, 1i64), (2, 5)],
@@ -391,6 +414,31 @@ mod tests {
             vec![],
         ];
         assert_eq!(dijkstra(&g, start), expected);
+    }
+
+    // 無向グラフでは辺が両方向に張られ、迂回のほうが安い経路も拾える
+    #[test]
+    fn dijkstra_on_undirected_graph() {
+        // 0-1(1), 1-2(2), 0-2(10) + 孤立点 3
+        let g = build_undirected_weighted_graph(4, &[(0, 1, 1), (1, 2, 2), (0, 2, 10)]);
+        assert_eq!(dijkstra(&g, 0), vec![Some(0), Some(1), Some(3), None]);
+        assert_eq!(dijkstra(&g, 2), vec![Some(3), Some(2), Some(0), None]);
+    }
+
+    // i64 以外の重み型でも型推論だけで通る（u32 なら隣接リストのメモリが半分）
+    #[test]
+    fn dijkstra_works_with_u32_weights() {
+        let g = build_undirected_weighted_graph(4, &[(0, 1, 1u32), (1, 2, 2), (0, 2, 10)]);
+        assert_eq!(dijkstra(&g, 0), vec![Some(0), Some(1), Some(3), None]);
+    }
+
+    // 10^5 頂点のパスでも二分ヒープ版なら間に合い、距離も溢れない
+    #[test]
+    fn dijkstra_large_path_graph() {
+        let n = 100_000;
+        let edges: Vec<(usize, usize, i64)> = (0..n - 1).map(|i| (i, i + 1, 10_000)).collect();
+        let g = build_undirected_weighted_graph(n, &edges);
+        assert_eq!(dijkstra(&g, 0)[n - 1], Some((n as i64 - 1) * 10_000));
     }
 
     // 直通辺より迂回のほうが安いケースと、到達不能(MAX)が残るケース
