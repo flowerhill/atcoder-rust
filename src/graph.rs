@@ -3,7 +3,7 @@ use itertools::Itertools;
 use num::traits::Zero;
 use std::cmp::Reverse;
 use std::ops::Add;
-use std::collections::{BinaryHeap, HashSet, VecDeque};
+use std::collections::{BinaryHeap, VecDeque};
 
 /// 無向辺のリストから n 頂点の隣接リストを作る(0-indexed)。各辺を両方向に張る。
 ///
@@ -117,31 +117,6 @@ pub fn bfsw(
     bfsw(g, visited, queue);
 }
 
-/// 根 0 の木について、根の各子を根とする部分木のサイズを `size` に積み、全体のノード数を返す。
-pub fn dfs_subtree_size(
-    graph: &Vec<Vec<usize>>,
-    start: usize,
-    visited: &mut HashSet<usize>,
-    size: &mut Vec<usize>,
-) -> usize {
-    // 現在のノードを訪問済みとしてマーク
-    visited.insert(start);
-    let mut cnt = 1;
-
-    // 隣接ノードを探索
-    for &neighbor in &graph[start] {
-        if visited.contains(&neighbor) {
-            continue;
-        }
-        let tmp = dfs_subtree_size(graph, neighbor, visited, size);
-        cnt += tmp;
-        if start == 0 {
-            size.push(tmp);
-        }
-    }
-    cnt
-}
-
 /// 木 `g`(隣接リスト)を `root` から辿り、行きがけ順 `order` と親配列 `parent` を返す。
 /// `order` 上で親は必ず子より前に並ぶので、逆順に走査すれば帰りがけ順の木 DP ができる。
 /// `root` の親は `usize::MAX`。再帰を使わないので深い木でもスタックオーバーフローしない。
@@ -170,6 +145,26 @@ pub fn tree_order(g: &[Vec<usize>], root: usize) -> (Vec<usize>, Vec<usize>) {
         }
     }
     (order, parent)
+}
+
+/// 木 `g` を `root` に根付けたときの、各頂点の部分木サイズを返す。O(N)。
+/// `size[root]` は全頂点数になる。再帰を使わないので深い木でも安全。
+///
+/// ```
+/// use atcoder_rust::graph::{build_undirected_graph, subtree_sizes};
+/// // 木: 0-1, 1-2, 0-3
+/// let g = build_undirected_graph(4, &[(0, 1), (1, 2), (0, 3)]);
+/// assert_eq!(subtree_sizes(&g, 0), vec![4, 2, 1, 1]);
+/// ```
+pub fn subtree_sizes(g: &[Vec<usize>], root: usize) -> Vec<usize> {
+    let (order, parent) = tree_order(g, root);
+
+    // order は親が子より先に並ぶので、根以外を逆順に辿れば子から親へ積み上がる
+    let mut size = vec![1; g.len()];
+    for &v in order[1..].iter().rev() {
+        size[parent[v]] += size[v];
+    }
+    size
 }
 
 /// 木 `g` を `root` に向かって帰りがけ順に畳み込む木 DP。全頂点の DP 値を返す。O(N)。
@@ -358,17 +353,6 @@ mod tests {
     }
 
     #[test]
-    fn subtree_sizes_of_root_children() {
-        // 木: 0 を根に、0-1, 1-2, 0-3 （0 の子は 1(部分木サイズ2) と 3(サイズ1)）
-        let g = build_undirected_graph(4, &[(0, 1), (1, 2), (0, 3)]);
-        let mut visited = std::collections::HashSet::new();
-        let mut size = vec![];
-        let total = dfs_subtree_size(&g, 0, &mut visited, &mut size);
-        assert_eq!(total, 4);
-        assert_eq!(size, vec![2, 1]);
-    }
-
-    #[test]
     fn tree_order_parents_before_children() {
         // 木: 0-1, 1-2, 0-3
         let g = build_undirected_graph(4, &[(0, 1), (1, 2), (0, 3)]);
@@ -381,6 +365,40 @@ mod tests {
         for v in 1..4 {
             assert!(pos[parent[v]] < pos[v], "parent of {} must come first", v);
         }
+    }
+
+    #[test]
+    fn subtree_sizes_rooted_at_0() {
+        // 木: 0-1, 1-2, 0-3
+        let g = build_undirected_graph(4, &[(0, 1), (1, 2), (0, 3)]);
+        assert_eq!(subtree_sizes(&g, 0), vec![4, 2, 1, 1]);
+    }
+
+    // 深さ 2 以上の木でないと「部分木サイズ」と「1 + 子の数」が区別できない
+    #[test]
+    fn subtree_sizes_accumulates_grandchildren() {
+        // 木: 0-1, 1-2, 2-3 のパス
+        let g = build_undirected_graph(4, &[(0, 1), (1, 2), (2, 3)]);
+        assert_eq!(subtree_sizes(&g, 0), vec![4, 3, 2, 1]);
+    }
+
+    // 根を変えるとサイズも変わる（根の部分木は常に全体）
+    #[test]
+    fn subtree_sizes_depends_on_root() {
+        // 木: 0-1, 1-2, 0-3
+        let g = build_undirected_graph(4, &[(0, 1), (1, 2), (0, 3)]);
+        assert_eq!(subtree_sizes(&g, 2), vec![2, 3, 4, 1]);
+    }
+
+    #[test]
+    fn subtree_sizes_deep_path_no_stack_overflow() {
+        // 10^5 頂点のパスでも落ちない
+        let n = 100_000;
+        let edges: Vec<(usize, usize)> = (0..n - 1).map(|i| (i, i + 1)).collect();
+        let g = build_undirected_graph(n, &edges);
+        let size = subtree_sizes(&g, 0);
+        assert_eq!(size[0], n);
+        assert_eq!(size[n - 1], 1);
     }
 
     #[test]
