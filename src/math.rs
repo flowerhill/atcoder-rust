@@ -1,3 +1,35 @@
+//! 整数まわりのユーティリティ。
+//!
+//! # mod 10^9+7 の扱い
+//!
+//! 手書きの mod 演算は持たない。`ac_library::ModInt1000000007` を使うと `+ - * /` が
+//! そのまま書け、mod の取り忘れとオーバーフローが型の上で起こらない。判定環境に入って
+//! いる crate なので、提出ファイルへは展開されない。`main.rs` では次のように別名を付ける。
+//!
+//! - 生成: `Mint::new(x)`（`x` は負でも 10^9+7 以上でもよい。自動で `[0, MOD)` に寄る）
+//! - 取り出し: `m.val()` → `u32`
+//! - 累乗 / 逆元: `m.pow(n)` / `m.inv()`（`/` と `inv()` は O(log MOD) なので、
+//!   ループ内で割らず逆元を 1 回だけ取って掛ける）
+//! - `Display` があるので `println!("{}", m)` でそのまま出力できる
+//! - 同じ `Vec` の 2 要素を足すときは `dp[i] += dp[j]` が借用検査に落ちるので
+//!   `dp[i] = dp[i] + dp[j]` と書く
+//!
+//! 法が 10^9+7 以外なら `ac_library::{ModInt998244353, DynamicModInt}`、単発の累乗・逆元
+//! だけなら `ac_library::{pow_mod, inv_mod}`（`inv_mod` は合成数の法でも可）を使う。
+//!
+//! ```
+//! use ac_library::ModInt1000000007 as Mint;
+//! assert_eq!((Mint::new(3) + Mint::new(4)).val(), 7);
+//! assert_eq!((Mint::new(0) - Mint::new(1)).val(), 1_000_000_006); // 負も自動で回る
+//! assert_eq!((Mint::new(-1) * Mint::new(-1)).val(), 1);
+//! assert_eq!((Mint::new(1) / Mint::new(2) * Mint::new(2)).val(), 1); // 除算は逆元倍
+//! assert_eq!(Mint::new(2).pow(10).val(), 1024);
+//! assert_eq!(Mint::new(1_000_000_008).val(), 1); // MOD 以上でもよい
+//! ```
+//!
+//! この module の `sum_of_arith_mod` / `sum_of_geom_mod` / `Comb` も同じ型を返すので、
+//! 呼ぶ側で付けた別名でそのまま受け取れる。
+
 use ac_library::ModInt1000000007;
 use std::ops::{
     Add, AddAssign, BitAnd, BitOr, Div, DivAssign, Mul, MulAssign, Rem, RemAssign, Shl, Shr, Sub,
@@ -141,29 +173,10 @@ pub fn sum_of_geom<T: Integer>(a: T, r: T, n: usize) -> T {
     (0..n).fold(T::ZERO, |sum, _| sum * r + a)
 }
 
-/// 素数 mod 10^9+7 上の値。`+ - * /` がそのまま使えるので、mod を取る処理を手で書かない
-/// （ac-library-rs の `StaticModInt`。判定環境にあるので提出ファイルへは展開されない）。
-///
-/// - 生成: `Mint::new(x)`（`x` は負でも 10^9+7 以上でもよい。自動で `[0, MOD)` に寄る）
-/// - 取り出し: `m.val()` → `u32`
-/// - 累乗 / 逆元: `m.pow(n)` / `m.inv()`
-/// - `Display` があるので `println!("{}", m)` でそのまま出力できる
-/// - 同じ `Vec` の 2 要素を足すときは `dp[i] += dp[j]` が借用検査に落ちるので
-///   `dp[i] = dp[i] + dp[j]` と書く
-///
-/// 法が 10^9+7 以外なら `ac_library::{ModInt998244353, DynamicModInt}`、
-/// 単発の累乗・逆元だけなら `ac_library::{pow_mod, inv_mod}`（`inv_mod` は合成数の法でも可）を使う。
-///
-/// ```
-/// use atcoder_rust::math::Mint;
-/// assert_eq!((Mint::new(3) + Mint::new(4)).val(), 7);
-/// assert_eq!((Mint::new(0) - Mint::new(1)).val(), 1_000_000_006); // 負も自動で回る
-/// assert_eq!((Mint::new(-1) * Mint::new(-1)).val(), 1);
-/// assert_eq!((Mint::new(1) / Mint::new(2) * Mint::new(2)).val(), 1); // 除算は逆元倍
-/// assert_eq!(Mint::new(2).pow(10).val(), 1024);
-/// assert_eq!(Mint::new(1_000_000_008).val(), 1); // MOD 以上でもよい
-/// ```
-pub type Mint = ModInt1000000007;
+/// mod 10^9+7 上の値。この module 内のシグネチャを短く保つためのエイリアスで、
+/// 公開はしない（呼ぶ側は `use ac_library::ModInt1000000007 as Mint;` と書く。
+/// エイリアス 1 行のために math モジュール全体が提出ファイルへ展開されるのを避けるため）。
+type Mint = ModInt1000000007;
 
 /// 整数区間 [lo, hi] の総和 (lo+hi)(hi-lo+1)/2 を mod 10^9+7 で返す（`lo > hi` なら 0）。
 /// 積を `i128` で厳密に計算してから `Mint` に落とすので、`lo`, `hi` が 10^18 規模でも

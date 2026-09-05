@@ -77,12 +77,14 @@ for i in 1..=k {
 
 イテレータアダプタは、DP 以外の集計・変換（入力の加工、答えの集約など）に使う。
 
-### mod は `Mint` を使う
+### mod は `Mint`（ac-library-rs の ModInt）を使う
 
-**mod 10^9+7 の計算は `math::Mint`（= ac-library-rs の `ModInt1000000007`）で行い、`a * b % MOD` のような手書きの mod 演算を書かない。** `+ - * /` がそのまま使え、負値や `MOD` 以上の値も `Mint::new` が `[0, MOD)` に寄せるので、mod の取り忘れ・オーバーフローが構造的に起こらない。出力は `Display` があるのでそのまま `println!("{}", ans)`。
+**mod 10^9+7 の計算は `ac_library::ModInt1000000007` で行い、`a * b % MOD` のような手書きの mod 演算を書かない。** `+ - * /` がそのまま使え、負値や `MOD` 以上の値も `Mint::new` が `[0, MOD)` に寄せるので、mod の取り忘れ・オーバーフローが構造的に起こらない。出力は `Display` があるのでそのまま `println!("{}", ans)`。
+
+**別名は `main.rs` 側で付ける**（`use ac_library::ModInt1000000007 as Mint;`）。自作ライブラリに `pub type Mint` を置くと、エイリアス 1 行のためにそのモジュール全体が提出ファイルへ展開されてしまう（実測で 37 行 → 509 行）。
 
 ```rust
-use atcoder_rust::math::Mint;
+use ac_library::ModInt1000000007 as Mint;
 
 let mut dp = vec![Mint::new(0); k + 1];
 dp[0] = Mint::new(1);
@@ -94,7 +96,7 @@ for i in 1..=k {
 }
 ```
 
-法が 10^9+7 以外なら `ac_library::{ModInt998244353, DynamicModInt}`、単発の累乗・逆元だけなら `ac_library::{pow_mod, inv_mod}`（`inv_mod` は合成数の法でも可）を使う。二項係数は `math::Comb`（`Mint` を返す）。
+法が 10^9+7 以外なら `ac_library::{ModInt998244353, DynamicModInt}`、単発の累乗・逆元だけなら `ac_library::{pow_mod, inv_mod}`（`inv_mod` は合成数の法でも可）を使う。二項係数は `math::Comb`（`ModInt1000000007` を返すので、上の別名でそのまま受けられる）。
 
 ### 引数の受け渡し（move / 借用）
 

@@ -32,12 +32,12 @@ src/
 ├── bsearch.rs       # 二分探索 / lower_bound / upper_bound / 前後の要素（neighbors）
 ├── cmp.rs           # chmax / chmin
 ├── cumsum.rs        # 累積和（cumsum）/ 区間和の取り出し（range_sum）
-├── graph.rs         # 隣接リスト構築（build_undirected_graph・build_undirected_weighted_graph）/ dfs / bfs（bfs_dist）/ ダイクストラ（dijkstra: 二分ヒープ・重み型 generic）/ ワーシャル・フロイド（warshall_floyd）/ 木 DP（tree_order・tree_dp）/ 木の直径（tree_diameter）
+├── graph.rs         # 隣接リスト構築（build_undirected_graph・build_undirected_weighted_graph）/ dfs / bfs（bfs_dist）/ ダイクストラ（dijkstra: 二分ヒープ・重み型 generic）/ ワーシャル・フロイド（warshall_floyd）/ 部分木サイズ（subtree_sizes）/ 木 DP（tree_order・tree_dp）/ 木の直径（tree_diameter）
 ├── grid.rs          # グリッド用の方向定数（DIRS4 / DIRS8）/ 盤面（Grid: (r,c) 添字・通し番号 index/coord・4 近傍 neighbors4）/ 転置（transpose）
-├── imos.rs          # いもす法（imos_1d / imos_2d）
+├── imos.rs          # いもす法（1 次元 imos_1d / 2 次元 imos_2d（閉矩形）・imos_2d_half_open（半開矩形）・逐次加算用の Imos2D）
 ├── io.rs            # 出力ヘルパ（yn / print_lines / タプルの出力 format_tuples・print_tuples / format_grid・print_grid）
 ├── lazyseg.rs       # 遅延セグメント木（ac-library-rs の LazySegtree）用の作用（区間 chmax + 区間 max: ChmaxMax）
-├── math.rs          # Integer トレイト / 数列和（sum_of_arith・sum_of_range・sum_of_geom）/ mod 演算（add_mod・modpow・sum_of_arith_mod・sum_of_geom_mod・Comb など）/ 桁変換
+├── math.rs          # Integer トレイト / 数列和（sum_of_arith・sum_of_range・sum_of_geom）/ mod 10^9+7（sum_of_arith_mod・sum_of_geom_mod・Comb: 戻り値は ac-library-rs の ModInt1000000007）/ 素数・約数（sieve・distinct_prime_factor_counts・factorize・divisors）/ 桁変換
 ├── pair.rs          # Pair<T>（成分ごとの加減算）
 ├── refops.rs        # 値渡しの演算子 impl から参照版（&T op U など）を生やすマクロ
 ├── seq.rs           # 部分列判定 / 辞書順最小の部分列（smallest_subsequence）/ 順列列挙 / 連長圧縮（run_length）

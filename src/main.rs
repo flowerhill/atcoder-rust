@@ -12,6 +12,9 @@ use superslice::Ext;
 // 例:
 //   use atcoder_rust::unionfind::UnionFind;
 //   use atcoder_rust::bsearch::{LowerBound, UpperBound};
+//
+// mod 10^9+7 は ac-library-rs の ModInt を使う（判定環境にあるので展開されない）。
+//   use ac_library::ModInt1000000007 as Mint;
 
 /// 解法本体。入力の読み取りは main に任せ、ここは純粋な計算に徹する
 /// (テストから直接呼べるようにするため)。
