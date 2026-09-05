@@ -9,6 +9,7 @@ pub mod graph;
 pub mod grid;
 pub mod imos;
 pub mod io;
+pub mod lazyseg;
 pub mod math;
 pub mod pair;
 pub mod refops;

@@ -36,6 +36,7 @@ src/
 ├── grid.rs          # グリッド用の方向定数（DIRS4 / DIRS8）/ 盤面（Grid: (r,c) 添字・通し番号 index/coord・4 近傍 neighbors4）/ 転置（transpose）
 ├── imos.rs          # いもす法（imos_1d / imos_2d）
 ├── io.rs            # 出力ヘルパ（yn / print_lines / タプルの出力 format_tuples・print_tuples / format_grid・print_grid）
+├── lazyseg.rs       # 遅延セグメント木（ac-library-rs の LazySegtree）用の作用（区間 chmax + 区間 max: ChmaxMax）
 ├── math.rs          # Integer トレイト / 数列和（sum_of_arith・sum_of_range・sum_of_geom）/ mod 演算（add_mod・modpow・sum_of_arith_mod・sum_of_geom_mod・Comb など）/ 桁変換
 ├── pair.rs          # Pair<T>（成分ごとの加減算）
 ├── refops.rs        # 値渡しの演算子 impl から参照版（&T op U など）を生やすマクロ
