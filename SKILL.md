@@ -52,8 +52,49 @@ description: Rust で AtCoder の競技プログラミング問題を解くと�
 - 想定外のケースに到達したら、サイレントに無害な値を返さず `panic!` / `unreachable!` / `expect` で落とす。エラーメッセージには **関数名 + デバッグの手がかり**（長さ・引数の値など）を含める。
 - 正当性が事前条件で構造的に保証できる場合、ホットパス（ループ内部）に panic 分岐を作らない。検証は本当に到達しえない箇所や入力検証に限定する。
 - 意図が読み取りやすく、かつ読み取れる範囲で短くシンプルなコードにする。
-- `Option` / `Result` とイテレータアダプタ（`map` / `filter` / `fold` / `scan` / `flat_map` / `zip` など）を活用し、手続き的に状態を引き回すより変換パイプラインで表現する。
+- `Option` / `Result` とイテレータアダプタ（`map` / `filter` / `fold` / `scan` / `flat_map` / `zip` など）を活用し、手続き的に状態を引き回すより変換パイプラインで表現する（**DP の遷移ループは例外。下記のとおり `for` で書く**）。
 - 公開関数にはドキュメントテスト（`/// ``` ... ``` `）を書く。
+
+### DP は `for` で書く
+
+**DP の遷移ループは `fold` / `scan` などのイテレータアダプタで書かず、素直な `for` と添字への代入で書く。** 漸化式がそのままコードの見た目になり、状態・遷移・答えの取り出しが目で追えることを最優先する。ループが二重・三重になっても `for` のままでよい。
+
+```rust
+// 良い例: 漸化式 dp[i] = Σ_{j=1..9} dp[i-j] がそのまま読める
+let mut dp = vec![0; k + 1];
+dp[0] = 1;
+for i in 1..=k {
+    for j in 1..=9.min(i) {
+        dp[i] = add_mod(dp[i], dp[i - j]);
+    }
+}
+
+// 避ける: 遷移が fold のクロージャに埋まり、範囲計算も読み取りにくい
+for i in 1..=k {
+    dp[i] = (i.saturating_sub(9)..i).fold(0, |acc, j| add_mod(acc, dp[j]));
+}
+```
+
+イテレータアダプタは、DP 以外の集計・変換（入力の加工、答えの集約など）に使う。
+
+### mod は `Mint` を使う
+
+**mod 10^9+7 の計算は `math::Mint`（= ac-library-rs の `ModInt1000000007`）で行い、`a * b % MOD` のような手書きの mod 演算を書かない。** `+ - * /` がそのまま使え、負値や `MOD` 以上の値も `Mint::new` が `[0, MOD)` に寄せるので、mod の取り忘れ・オーバーフローが構造的に起こらない。出力は `Display` があるのでそのまま `println!("{}", ans)`。
+
+```rust
+use atcoder_rust::math::Mint;
+
+let mut dp = vec![Mint::new(0); k + 1];
+dp[0] = Mint::new(1);
+for i in 1..=k {
+    for j in 1..=9.min(i) {
+        // 同じ Vec の 2 要素なので `+=` は借用検査に落ちる。`=` と `+` で書く
+        dp[i] = dp[i] + dp[i - j];
+    }
+}
+```
+
+法が 10^9+7 以外なら `ac_library::{ModInt998244353, DynamicModInt}`、単発の累乗・逆元だけなら `ac_library::{pow_mod, inv_mod}`（`inv_mod` は合成数の法でも可）を使う。二項係数は `math::Comb`（`Mint` を返す）。
 
 ### 引数の受け渡し（move / 借用）
 

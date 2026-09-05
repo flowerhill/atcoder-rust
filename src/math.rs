@@ -1,3 +1,4 @@
+use ac_library::ModInt1000000007;
 use std::ops::{
     Add, AddAssign, BitAnd, BitOr, Div, DivAssign, Mul, MulAssign, Rem, RemAssign, Shl, Shr, Sub,
     SubAssign,
@@ -33,28 +34,40 @@ pub trait Integer:
     fn as_usize(&self) -> usize;
     /// `usize` 値を `Self` 型にキャストして生成する。
     fn from_usize(n: usize) -> Self;
+    /// 絶対値。符号なし型では恒等写像（`gcd` などを符号の有無に依らず書くため）。
+    fn abs(self) -> Self;
 }
 macro_rules! impl_integer {
-    ($($ty:ident),*) => {
-        $(
-            impl Integer for $ty {
-                const ZERO: Self = 0;
-                const ONE: Self = 1;
-                const TWO: Self = 2;
-                const MAX: Self = Self::MAX;
-                const MIN: Self = Self::MIN;
-                fn as_usize(&self) -> usize {
-                    *self as usize
-                }
-                fn from_usize(n: usize) -> Self {
-                    n as $ty
-                }
+    // 符号なし型: abs は恒等写像
+    (unsigned: $($ty:ident),*) => {
+        $( impl_integer!(@impl $ty, |x: $ty| x); )*
+    };
+    // 符号付き型: abs は標準の i*::abs
+    (signed: $($ty:ident),*) => {
+        $( impl_integer!(@impl $ty, |x: $ty| x.abs()); )*
+    };
+    (@impl $ty:ident, $abs:expr) => {
+        impl Integer for $ty {
+            const ZERO: Self = 0;
+            const ONE: Self = 1;
+            const TWO: Self = 2;
+            const MAX: Self = Self::MAX;
+            const MIN: Self = Self::MIN;
+            fn as_usize(&self) -> usize {
+                *self as usize
             }
-        )*
+            fn from_usize(n: usize) -> Self {
+                n as $ty
+            }
+            fn abs(self) -> Self {
+                ($abs)(self)
+            }
+        }
     };
 }
 
-impl_integer!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize);
+impl_integer!(unsigned: u8, u16, u32, u64, u128, usize);
+impl_integer!(signed: i8, i16, i32, i64, i128, isize);
 
 /// 整数区間 [lo, hi] の要素数。空区間 (lo > hi) なら 0 を返す。
 /// `Integer` を実装する任意の整数型で使える（`usize` など）。
@@ -128,158 +141,112 @@ pub fn sum_of_geom<T: Integer>(a: T, r: T, n: usize) -> T {
     (0..n).fold(T::ZERO, |sum, _| sum * r + a)
 }
 
-/// 素数 mod（AtCoder 頻出の 10^9+7）。
-pub const MOD: i64 = 1_000_000_007;
-
-/// `(a + b) % MOD`。`a`, `b` は `[0, MOD)` を想定。
+/// 素数 mod 10^9+7 上の値。`+ - * /` がそのまま使えるので、mod を取る処理を手で書かない
+/// （ac-library-rs の `StaticModInt`。判定環境にあるので提出ファイルへは展開されない）。
+///
+/// - 生成: `Mint::new(x)`（`x` は負でも 10^9+7 以上でもよい。自動で `[0, MOD)` に寄る）
+/// - 取り出し: `m.val()` → `u32`
+/// - 累乗 / 逆元: `m.pow(n)` / `m.inv()`
+/// - `Display` があるので `println!("{}", m)` でそのまま出力できる
+/// - 同じ `Vec` の 2 要素を足すときは `dp[i] += dp[j]` が借用検査に落ちるので
+///   `dp[i] = dp[i] + dp[j]` と書く
+///
+/// 法が 10^9+7 以外なら `ac_library::{ModInt998244353, DynamicModInt}`、
+/// 単発の累乗・逆元だけなら `ac_library::{pow_mod, inv_mod}`（`inv_mod` は合成数の法でも可）を使う。
 ///
 /// ```
-/// use atcoder_rust::math::{add_mod, MOD};
-/// assert_eq!(add_mod(3, 4), 7);
-/// assert_eq!(add_mod(MOD - 1, 2), 1);
+/// use atcoder_rust::math::Mint;
+/// assert_eq!((Mint::new(3) + Mint::new(4)).val(), 7);
+/// assert_eq!((Mint::new(0) - Mint::new(1)).val(), 1_000_000_006); // 負も自動で回る
+/// assert_eq!((Mint::new(-1) * Mint::new(-1)).val(), 1);
+/// assert_eq!((Mint::new(1) / Mint::new(2) * Mint::new(2)).val(), 1); // 除算は逆元倍
+/// assert_eq!(Mint::new(2).pow(10).val(), 1024);
+/// assert_eq!(Mint::new(1_000_000_008).val(), 1); // MOD 以上でもよい
 /// ```
-pub fn add_mod(a: i64, b: i64) -> i64 {
-    (a + b) % MOD
-}
+pub type Mint = ModInt1000000007;
 
-/// `(a - b) mod MOD` を非負で返す。`a`, `b` は `[0, MOD)` を想定。
-///
-/// ```
-/// use atcoder_rust::math::{sub_mod, MOD};
-/// assert_eq!(sub_mod(7, 3), 4);
-/// assert_eq!(sub_mod(0, 1), MOD - 1);
-/// ```
-pub fn sub_mod(a: i64, b: i64) -> i64 {
-    (a - b + MOD) % MOD
-}
-
-/// `a * b % MOD`。`a`, `b` は `[0, MOD)` を想定（積が `i64` に収まる）。
-///
-/// ```
-/// use atcoder_rust::math::{mul_mod, MOD};
-/// assert_eq!(mul_mod(3, 4), 12);
-/// assert_eq!(mul_mod(MOD - 1, MOD - 1), 1); // (-1) * (-1) ≡ 1
-/// ```
-pub fn mul_mod(a: i64, b: i64) -> i64 {
-    a * b % MOD
-}
-
-/// 整数区間 [lo, hi] の総和 (lo+hi)(hi-lo+1)/2 を mod `MOD` で返す（`lo > hi` なら 0）。
-/// 積を `i128` で厳密に計算してから mod を取るので、`lo`, `hi` が 10^18 規模でも
+/// 整数区間 [lo, hi] の総和 (lo+hi)(hi-lo+1)/2 を mod 10^9+7 で返す（`lo > hi` なら 0）。
+/// 積を `i128` で厳密に計算してから `Mint` に落とすので、`lo`, `hi` が 10^18 規模でも
 /// オーバーフローしない（積は最大 ~2*10^36 で i128 に収まる）。逆元は不要。
 ///
 /// ```
 /// use atcoder_rust::math::sum_of_arith_mod;
-/// assert_eq!(sum_of_arith_mod(1, 10), 55);
-/// assert_eq!(sum_of_arith_mod(3, 5), 12);
-/// assert_eq!(sum_of_arith_mod(7, 7), 7); // 単点
-/// assert_eq!(sum_of_arith_mod(5, 3), 0); // 空区間
+/// assert_eq!(sum_of_arith_mod(1, 10).val(), 55);
+/// assert_eq!(sum_of_arith_mod(3, 5).val(), 12);
+/// assert_eq!(sum_of_arith_mod(7, 7).val(), 7); // 単点
+/// assert_eq!(sum_of_arith_mod(5, 3).val(), 0); // 空区間
+/// assert_eq!(sum_of_arith_mod(1, 1_000_000_000_000_000_000).val(), 1225); // 10^18 でも溢れない
 /// ```
-pub fn sum_of_arith_mod(lo: i128, hi: i128) -> i64 {
+pub fn sum_of_arith_mod(lo: i128, hi: i128) -> Mint {
     if lo > hi {
-        0
+        Mint::new(0)
     } else {
-        ((lo + hi) * (hi - lo + 1) / 2 % MOD as i128) as i64
+        Mint::new((lo + hi) * (hi - lo + 1) / 2)
     }
 }
 
-/// `base^exp mod m` を繰り返し二乗法（バイナリ法）で計算する。O(log exp)。
-/// `m == 1` でも `1 % m == 0` となり破綻しない。`0^0 == 1` と定義する。
-/// `base` が負でも `base %= m` 後に `+ m` で非負へ寄せて扱う。`exp >= 0` が前提。
+/// 初項 `a`、公比 `r`、項数 `n` の等比数列の総和を mod 10^9+7 で返す。O(log n)。
+/// 公式 `a(r^n - 1)/(r - 1)` を使うが、分母が 0 になる `r ≡ 1` は総和が `a * n` に
+/// なるので先に分岐する（法が素数なのでそれ以外は逆元が存在する）。
+/// `a`, `r` は負や 10^9+7 以上でもよい（`Mint::new` が `[0, MOD)` に寄せるので、
+/// `r == Mint::new(1)` の判定がそのまま `r ≡ 1 (mod MOD)` の判定になる）。
 ///
 /// ```
-/// use atcoder_rust::math::{modpow, MOD};
-/// assert_eq!(modpow(2, 10, MOD), 1024);
-/// assert_eq!(modpow(3, 0, 7), 1);
-/// assert_eq!(modpow(0, 0, 7), 1);
-/// assert_eq!(modpow(123, 456, MOD), 565291922);
-/// assert_eq!(modpow(-1, 3, 7), 6); // (-1)^3 = -1 ≡ 6 (mod 7)
+/// use atcoder_rust::math::sum_of_geom_mod;
+/// assert_eq!(sum_of_geom_mod(1, 2, 10).val(), 1023); // 2^10 - 1
+/// assert_eq!(sum_of_geom_mod(2, 3, 4).val(), 80); // 2+6+18+54
+/// assert_eq!(sum_of_geom_mod(3, 1, 5).val(), 15); // 公比 1（分母が 0 になるので分岐で回避）
+/// assert_eq!(sum_of_geom_mod(3, 1_000_000_008, 5).val(), 15); // r ≡ 1 (mod MOD) でも同じ
+/// assert_eq!(sum_of_geom_mod(1, 2, 0).val(), 0); // 項数 0
+/// assert_eq!(sum_of_geom_mod(1, 2, 100).val(), 976_371_284); // (2^100 - 1) mod MOD
 /// ```
-pub fn modpow(mut base: i64, mut exp: i64, m: i64) -> i64 {
-    let mut result = 1 % m;
-    base = ((base % m) + m) % m;
-    while exp > 0 {
-        if exp & 1 == 1 {
-            result = result * base % m;
-        }
-        base = base * base % m;
-        exp >>= 1;
-    }
-    result
-}
-
-/// 初項 `a`、公比 `r`、項数 `n` の等比数列の総和を mod `MOD` で返す。O(log n)。
-/// 公式 `a(r^n - 1)/(r - 1)` を使うが、分母が 0 になる `r ≡ 1 (mod MOD)` は
-/// 総和が `a * n` になるので先に分岐する（`MOD` が素数なのでそれ以外は逆元が存在する）。
-/// `a`, `r` は負や `MOD` 以上でもよい（内部で `[0, MOD)` に寄せるので、
-/// `r == 1` の判定がそのまま `r ≡ 1 (mod MOD)` の判定になる）。
-///
-/// ```
-/// use atcoder_rust::math::{sum_of_geom_mod, MOD};
-/// assert_eq!(sum_of_geom_mod(1, 2, 10), 1023); // 2^10 - 1
-/// assert_eq!(sum_of_geom_mod(2, 3, 4), 80); // 2+6+18+54
-/// assert_eq!(sum_of_geom_mod(3, 1, 5), 15); // 公比 1（分母が 0 になるので分岐で回避）
-/// assert_eq!(sum_of_geom_mod(3, MOD + 1, 5), 15); // r ≡ 1 (mod MOD) でも同じ
-/// assert_eq!(sum_of_geom_mod(1, 2, 0), 0); // 項数 0
-/// assert_eq!(sum_of_geom_mod(1, 2, 100), 976371284); // (2^100 - 1) mod MOD
-/// ```
-pub fn sum_of_geom_mod(a: i64, r: i64, n: usize) -> i64 {
-    let (a, r) = (a.rem_euclid(MOD), r.rem_euclid(MOD));
-    if r == 1 {
-        mul_mod(a, (n as i64) % MOD)
+pub fn sum_of_geom_mod(a: i64, r: i64, n: usize) -> Mint {
+    let (a, r) = (Mint::new(a), Mint::new(r));
+    let one = Mint::new(1);
+    if r == one {
+        a * Mint::new(n)
     } else {
-        let ratio = mul_mod(sub_mod(modpow(r, n as i64, MOD), 1), modinv(r - 1, MOD));
-        mul_mod(a, ratio)
+        a * (r.pow(n as u64) - one) / (r - one)
     }
 }
 
-/// 素数 `m` を法とする `a` の逆元（フェルマーの小定理）。`m` は素数、`gcd(a, m) == 1` が前提。
-/// `a` が負でも `modpow` 側で非負へ寄せて扱う。
-///
-/// ```
-/// use atcoder_rust::math::{modinv, MOD};
-/// assert_eq!(modinv(2, MOD) * 2 % MOD, 1);
-/// assert_eq!(modinv(3, 7), 5); // 3*5 = 15 ≡ 1 (mod 7)
-/// ```
-pub fn modinv(a: i64, m: i64) -> i64 {
-    modpow(a, m - 2, m)
-}
-
-/// 階乗・逆階乗を前計算し、mod 素数 `MOD` 上で二項係数 `nCr` / 順列 `nPr` を O(1) で返す。
+/// 階乗・逆階乗を前計算し、mod 10^9+7 上で二項係数 `nCr` / 順列 `nPr` を O(1) で返す。
 /// `new(n_max)` で 0..=n_max のテーブルを作る（前計算 O(n_max)）。
 ///
 /// ```
 /// use atcoder_rust::math::Comb;
 /// let c = Comb::new(1000);
-/// assert_eq!(c.comb(5, 2), 10);
-/// assert_eq!(c.perm(5, 2), 20);
-/// assert_eq!(c.comb(5, 0), 1);
-/// assert_eq!(c.comb(2, 5), 0); // r > n は 0
+/// assert_eq!(c.comb(5, 2).val(), 10);
+/// assert_eq!(c.perm(5, 2).val(), 20);
+/// assert_eq!(c.comb(5, 0).val(), 1);
+/// assert_eq!(c.comb(2, 5).val(), 0); // r > n は 0
+/// assert_eq!(c.comb(1000, 500), c.comb(1000, 500)); // 大きい n でも O(1)
 /// ```
 pub struct Comb {
-    fact: Vec<i64>,
-    inv_fact: Vec<i64>,
+    fact: Vec<Mint>,
+    inv_fact: Vec<Mint>,
 }
 
 impl Comb {
     /// 0..=n_max の階乗・逆階乗を前計算する。O(n_max)。
+    /// 逆元は n_max のぶんだけ 1 回求め、あとは i を掛けて降順に伝播させる。
     pub fn new(n_max: usize) -> Self {
-        let mut fact = vec![1i64; n_max + 1];
+        let mut fact = vec![Mint::new(1); n_max + 1];
         for i in 1..=n_max {
-            fact[i] = fact[i - 1] * i as i64 % MOD;
+            fact[i] = fact[i - 1] * Mint::new(i);
         }
-        let mut inv_fact = vec![1i64; n_max + 1];
-        inv_fact[n_max] = modinv(fact[n_max], MOD);
+        let mut inv_fact = vec![Mint::new(1); n_max + 1];
+        inv_fact[n_max] = fact[n_max].inv();
         for i in (1..=n_max).rev() {
-            inv_fact[i - 1] = inv_fact[i] * i as i64 % MOD;
+            inv_fact[i - 1] = inv_fact[i] * Mint::new(i);
         }
         Self { fact, inv_fact }
     }
 
-    /// 二項係数 nCr mod MOD。`r > n` なら 0。`n` は前計算範囲内であること。
-    pub fn comb(&self, n: usize, r: usize) -> i64 {
+    /// 二項係数 nCr（mod 10^9+7）。`r > n` なら 0。`n` は前計算範囲内であること。
+    pub fn comb(&self, n: usize, r: usize) -> Mint {
         if r > n {
-            return 0;
+            return Mint::new(0);
         }
         assert!(
             n < self.fact.len(),
@@ -287,13 +254,13 @@ impl Comb {
             n,
             self.fact.len() - 1
         );
-        self.fact[n] * self.inv_fact[r] % MOD * self.inv_fact[n - r] % MOD
+        self.fact[n] * self.inv_fact[r] * self.inv_fact[n - r]
     }
 
-    /// 順列 nPr mod MOD。`r > n` なら 0。`n` は前計算範囲内であること。
-    pub fn perm(&self, n: usize, r: usize) -> i64 {
+    /// 順列 nPr（mod 10^9+7）。`r > n` なら 0。`n` は前計算範囲内であること。
+    pub fn perm(&self, n: usize, r: usize) -> Mint {
         if r > n {
-            return 0;
+            return Mint::new(0);
         }
         assert!(
             n < self.fact.len(),
@@ -301,21 +268,23 @@ impl Comb {
             n,
             self.fact.len() - 1
         );
-        self.fact[n] * self.inv_fact[n - r] % MOD
+        self.fact[n] * self.inv_fact[n - r]
     }
 }
 
 /// 最大公約数（ユークリッドの互除法）。負値は絶対値で扱う。`gcd(0, 0) == 0`。
+/// `Integer` を実装する任意の整数型で使える（`usize` など）。
 ///
 /// ```
 /// use atcoder_rust::math::gcd;
 /// assert_eq!(gcd(12, 18), 6);
 /// assert_eq!(gcd(0, 5), 5);
 /// assert_eq!(gcd(-12, 18), 6);
+/// assert_eq!(gcd(12usize, 18), 6); // 符号なしでもそのまま呼べる
 /// ```
-pub fn gcd(a: i64, b: i64) -> i64 {
+pub fn gcd<T: Integer>(a: T, b: T) -> T {
     let (mut a, mut b) = (a.abs(), b.abs());
-    while b != 0 {
+    while b != T::ZERO {
         let r = a % b;
         a = b;
         b = r;
@@ -324,15 +293,17 @@ pub fn gcd(a: i64, b: i64) -> i64 {
 }
 
 /// 最小公倍数。`a` か `b` が 0 なら 0。先に割ってから掛けてオーバーフローを抑える。
+/// `Integer` を実装する任意の整数型で使える。
 ///
 /// ```
 /// use atcoder_rust::math::lcm;
 /// assert_eq!(lcm(4, 6), 12);
 /// assert_eq!(lcm(0, 5), 0);
+/// assert_eq!(lcm(4usize, 6), 12);
 /// ```
-pub fn lcm(a: i64, b: i64) -> i64 {
-    if a == 0 || b == 0 {
-        0
+pub fn lcm<T: Integer>(a: T, b: T) -> T {
+    if a == T::ZERO || b == T::ZERO {
+        T::ZERO
     } else {
         a.abs() / gcd(a, b) * b.abs()
     }
@@ -366,29 +337,58 @@ pub fn sieve(n: usize) -> Vec<bool> {
     is_prime
 }
 
+/// 篩で 0..=n の各数の「異なる素因数の個数」（ω 関数）をまとめて求める。
+/// `v[i]` は i の素因数の種類数で、`v[0] = v[1] = 0`。O(n log log n)。
+/// 素数 p を見つけるたび p の倍数すべてに 1 を足す（`counts[p] == 0` なら
+/// より小さい素数で割り切れない = p は素数）。種類数は n <= 10^18 でも 15 以下に
+/// 収まるので `u8` で持ち、n = 10^7 でも 10 MB に抑える。
+///
+/// ```
+/// use atcoder_rust::math::distinct_prime_factor_counts;
+/// let w = distinct_prime_factor_counts(12);
+/// assert_eq!(w[1], 0); // 1 は素因数なし
+/// assert_eq!(w[7], 1); // 素数
+/// assert_eq!(w[8], 1); // 2^3 は種類としては 1
+/// assert_eq!(w[12], 2); // 2^2 * 3
+/// assert_eq!(distinct_prime_factor_counts(0), vec![0]);
+/// ```
+pub fn distinct_prime_factor_counts(n: usize) -> Vec<u8> {
+    let mut counts = vec![0u8; n + 1];
+    for p in 2..=n {
+        if counts[p] == 0 {
+            for m in (p..=n).step_by(p) {
+                counts[m] += 1;
+            }
+        }
+    }
+    counts
+}
+
 /// 試し割りによる素因数分解。`(素因数, 指数)` を昇順で返す。`n >= 1`。O(√n)。
+/// `Integer` を実装する任意の整数型で使える。
 ///
 /// ```
 /// use atcoder_rust::math::factorize;
 /// assert_eq!(factorize(12), vec![(2, 2), (3, 1)]);
 /// assert_eq!(factorize(1), vec![]);
 /// assert_eq!(factorize(97), vec![(97, 1)]);
+/// assert_eq!(factorize(360u64), vec![(2, 3), (3, 2), (5, 1)]); // 符号なしでも可
 /// ```
-pub fn factorize(mut n: i64) -> Vec<(i64, u32)> {
+pub fn factorize<T: Integer>(mut n: T) -> Vec<(T, u32)> {
     let mut factors = Vec::new();
-    let mut d = 2;
+    let mut d = T::TWO;
     while d * d <= n {
-        if n % d == 0 {
+        if n % d == T::ZERO {
             let mut e = 0;
-            while n % d == 0 {
+            while n % d == T::ZERO {
                 n /= d;
                 e += 1;
             }
             factors.push((d, e));
         }
-        d += 1;
+        d += T::ONE;
     }
-    if n > 1 {
+    if n > T::ONE {
         factors.push((n, 1));
     }
     factors
@@ -581,7 +581,7 @@ mod tests {
     fn sum_of_range_agrees_with_mod_version() {
         for (lo, hi) in [(1i64, 10), (3, 5), (7, 7), (5, 3), (1, 100_000)] {
             assert_eq!(
-                sum_of_range(lo, hi) % MOD,
+                Mint::new(sum_of_range(lo, hi)),
                 sum_of_arith_mod(lo as i128, hi as i128)
             );
         }
@@ -605,24 +605,24 @@ mod tests {
     #[case(1, 2, 10, 1023)]
     #[case(2, 3, 4, 80)]
     #[case(3, 1, 5, 15)] // 公比 1
-    #[case(3, MOD + 1, 5, 15)] // r ≡ 1 (mod MOD)：r == 1 だけ弾く実装が壊れる境界
+    #[case(3, 1_000_000_008, 5, 15)] // r ≡ 1 (mod MOD)：r == 1 だけ弾く実装が壊れる境界
     #[case(1, 2, 0, 0)] // 項数 0
-    #[case(1, 2, 100, 976371284)] // (2^100 - 1) mod MOD：分割統治の再帰が効く長さ
-    #[case(-1, 2, 3, MOD - 7)] // 初項が負でも [0, MOD) に寄る
-    fn sum_of_geom_mod_works(#[case] a: i64, #[case] r: i64, #[case] n: usize, #[case] expected: i64) {
-        assert_eq!(sum_of_geom_mod(a, r, n), expected);
+    #[case(1, 2, 100, 976_371_284)] // (2^100 - 1) mod MOD：pow が効く長さ
+    #[case(-1, 2, 3, 1_000_000_000)] // 初項が負でも [0, MOD) に寄る（= MOD - 7）
+    fn sum_of_geom_mod_works(#[case] a: i64, #[case] r: i64, #[case] n: usize, #[case] expected: u32) {
+        assert_eq!(sum_of_geom_mod(a, r, n).val(), expected);
     }
 
-    // 分割統治（偶数長・奇数長の両経路）が素朴な累積と一致する
+    // 閉じた式（逆元を使う経路）が素朴な 1 項ずつの累積と一致する
     #[test]
     fn sum_of_geom_mod_agrees_with_naive() {
         let (a, r) = (5i64, 7i64);
-        let mut naive = 0;
-        let mut term = a % MOD;
+        let mut naive = Mint::new(0);
+        let mut term = Mint::new(a);
         for n in 0..50 {
             assert_eq!(sum_of_geom_mod(a, r, n), naive, "n={n}");
-            naive = add_mod(naive, term);
-            term = mul_mod(term, r);
+            naive = naive + term;
+            term = term * Mint::new(r);
         }
     }
 
@@ -634,8 +634,49 @@ mod tests {
     #[case(5, 3, 0)] // 空区間
     #[case(1, 100_000, 49965)] // (1+10^5)*10^5/2 = 5000050000 mod (10^9+7)
     #[case(1, 1_000_000_000_000_000_000, 1225)] // lo=1, hi=10^18: 積が i64 を溢れる領域
-    fn sum_of_arith_mod_works(#[case] lo: i128, #[case] hi: i128, #[case] expected: i64) {
-        assert_eq!(sum_of_arith_mod(lo, hi), expected);
+    fn sum_of_arith_mod_works(#[case] lo: i128, #[case] hi: i128, #[case] expected: u32) {
+        assert_eq!(sum_of_arith_mod(lo, hi).val(), expected);
+    }
+
+    // Comb（ModInt 版）がパスカルの三角形と一致する
+    #[test]
+    fn comb_agrees_with_pascal() {
+        let n_max = 30;
+        let c = Comb::new(n_max);
+        let mut pascal = vec![vec![Mint::new(0); n_max + 1]; n_max + 1];
+        for n in 0..=n_max {
+            pascal[n][0] = Mint::new(1);
+            for r in 1..=n {
+                pascal[n][r] = pascal[n - 1][r - 1] + pascal[n - 1][r];
+            }
+        }
+        for n in 0..=n_max {
+            for r in 0..=n_max {
+                let expected = if r <= n { pascal[n][r] } else { Mint::new(0) };
+                assert_eq!(c.comb(n, r), expected, "n={n} r={r}");
+            }
+        }
+    }
+
+    // nPr = nCr * r!。逆階乗テーブルの伝播が正しいことの確認
+    #[test]
+    fn perm_agrees_with_comb_times_factorial() {
+        let c = Comb::new(100);
+        for (n, r) in [(5usize, 2usize), (10, 0), (10, 10), (100, 37), (3, 5)] {
+            let fact_r = (1..=r.min(n)).fold(Mint::new(1), |acc, i| acc * Mint::new(i));
+            let expected = if r > n { Mint::new(0) } else { c.comb(n, r) * fact_r };
+            assert_eq!(c.perm(n, r), expected, "n={n} r={r}");
+        }
+    }
+
+    // gcd / lcm / factorize が符号なし型でもそのまま呼べる（Integer 化の確認）
+    #[test]
+    fn number_theory_is_generic() {
+        assert_eq!(gcd(12usize, 18), 6);
+        assert_eq!(gcd(-12i64, 18), 6);
+        assert_eq!(lcm(4u32, 6), 12);
+        assert_eq!(factorize(360u64), vec![(2, 3), (3, 2), (5, 1)]);
+        assert_eq!(factorize(1i128), vec![]);
     }
 
     // 桁分解（最上位桁が先頭）。n == 0 のときは [0]
