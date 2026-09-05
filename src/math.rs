@@ -173,13 +173,8 @@ pub fn sum_of_geom<T: Integer>(a: T, r: T, n: usize) -> T {
     (0..n).fold(T::ZERO, |sum, _| sum * r + a)
 }
 
-/// mod 10^9+7 上の値。この module 内のシグネチャを短く保つためのエイリアスで、
-/// 公開はしない（呼ぶ側は `use ac_library::ModInt1000000007 as Mint;` と書く。
-/// エイリアス 1 行のために math モジュール全体が提出ファイルへ展開されるのを避けるため）。
-type Mint = ModInt1000000007;
-
 /// 整数区間 [lo, hi] の総和 (lo+hi)(hi-lo+1)/2 を mod 10^9+7 で返す（`lo > hi` なら 0）。
-/// 積を `i128` で厳密に計算してから `Mint` に落とすので、`lo`, `hi` が 10^18 規模でも
+/// 積を `i128` で厳密に計算してから `ModInt1000000007` に落とすので、`lo`, `hi` が 10^18 規模でも
 /// オーバーフローしない（積は最大 ~2*10^36 で i128 に収まる）。逆元は不要。
 ///
 /// ```
@@ -190,19 +185,19 @@ type Mint = ModInt1000000007;
 /// assert_eq!(sum_of_arith_mod(5, 3).val(), 0); // 空区間
 /// assert_eq!(sum_of_arith_mod(1, 1_000_000_000_000_000_000).val(), 1225); // 10^18 でも溢れない
 /// ```
-pub fn sum_of_arith_mod(lo: i128, hi: i128) -> Mint {
+pub fn sum_of_arith_mod(lo: i128, hi: i128) -> ModInt1000000007 {
     if lo > hi {
-        Mint::new(0)
+        ModInt1000000007::new(0)
     } else {
-        Mint::new((lo + hi) * (hi - lo + 1) / 2)
+        ModInt1000000007::new((lo + hi) * (hi - lo + 1) / 2)
     }
 }
 
 /// 初項 `a`、公比 `r`、項数 `n` の等比数列の総和を mod 10^9+7 で返す。O(log n)。
 /// 公式 `a(r^n - 1)/(r - 1)` を使うが、分母が 0 になる `r ≡ 1` は総和が `a * n` に
 /// なるので先に分岐する（法が素数なのでそれ以外は逆元が存在する）。
-/// `a`, `r` は負や 10^9+7 以上でもよい（`Mint::new` が `[0, MOD)` に寄せるので、
-/// `r == Mint::new(1)` の判定がそのまま `r ≡ 1 (mod MOD)` の判定になる）。
+/// `a`, `r` は負や 10^9+7 以上でもよい（`ModInt1000000007::new` が `[0, MOD)` に寄せるので、
+/// `r == ModInt1000000007::new(1)` の判定がそのまま `r ≡ 1 (mod MOD)` の判定になる）。
 ///
 /// ```
 /// use atcoder_rust::math::sum_of_geom_mod;
@@ -213,11 +208,11 @@ pub fn sum_of_arith_mod(lo: i128, hi: i128) -> Mint {
 /// assert_eq!(sum_of_geom_mod(1, 2, 0).val(), 0); // 項数 0
 /// assert_eq!(sum_of_geom_mod(1, 2, 100).val(), 976_371_284); // (2^100 - 1) mod MOD
 /// ```
-pub fn sum_of_geom_mod(a: i64, r: i64, n: usize) -> Mint {
-    let (a, r) = (Mint::new(a), Mint::new(r));
-    let one = Mint::new(1);
+pub fn sum_of_geom_mod(a: i64, r: i64, n: usize) -> ModInt1000000007 {
+    let (a, r) = (ModInt1000000007::new(a), ModInt1000000007::new(r));
+    let one = ModInt1000000007::new(1);
     if r == one {
-        a * Mint::new(n)
+        a * ModInt1000000007::new(n)
     } else {
         a * (r.pow(n as u64) - one) / (r - one)
     }
@@ -236,30 +231,30 @@ pub fn sum_of_geom_mod(a: i64, r: i64, n: usize) -> Mint {
 /// assert_eq!(c.comb(1000, 500), c.comb(1000, 500)); // 大きい n でも O(1)
 /// ```
 pub struct Comb {
-    fact: Vec<Mint>,
-    inv_fact: Vec<Mint>,
+    fact: Vec<ModInt1000000007>,
+    inv_fact: Vec<ModInt1000000007>,
 }
 
 impl Comb {
     /// 0..=n_max の階乗・逆階乗を前計算する。O(n_max)。
     /// 逆元は n_max のぶんだけ 1 回求め、あとは i を掛けて降順に伝播させる。
     pub fn new(n_max: usize) -> Self {
-        let mut fact = vec![Mint::new(1); n_max + 1];
+        let mut fact = vec![ModInt1000000007::new(1); n_max + 1];
         for i in 1..=n_max {
-            fact[i] = fact[i - 1] * Mint::new(i);
+            fact[i] = fact[i - 1] * ModInt1000000007::new(i);
         }
-        let mut inv_fact = vec![Mint::new(1); n_max + 1];
+        let mut inv_fact = vec![ModInt1000000007::new(1); n_max + 1];
         inv_fact[n_max] = fact[n_max].inv();
         for i in (1..=n_max).rev() {
-            inv_fact[i - 1] = inv_fact[i] * Mint::new(i);
+            inv_fact[i - 1] = inv_fact[i] * ModInt1000000007::new(i);
         }
         Self { fact, inv_fact }
     }
 
     /// 二項係数 nCr（mod 10^9+7）。`r > n` なら 0。`n` は前計算範囲内であること。
-    pub fn comb(&self, n: usize, r: usize) -> Mint {
+    pub fn comb(&self, n: usize, r: usize) -> ModInt1000000007 {
         if r > n {
-            return Mint::new(0);
+            return ModInt1000000007::new(0);
         }
         assert!(
             n < self.fact.len(),
@@ -271,9 +266,9 @@ impl Comb {
     }
 
     /// 順列 nPr（mod 10^9+7）。`r > n` なら 0。`n` は前計算範囲内であること。
-    pub fn perm(&self, n: usize, r: usize) -> Mint {
+    pub fn perm(&self, n: usize, r: usize) -> ModInt1000000007 {
         if r > n {
-            return Mint::new(0);
+            return ModInt1000000007::new(0);
         }
         assert!(
             n < self.fact.len(),
@@ -594,7 +589,7 @@ mod tests {
     fn sum_of_range_agrees_with_mod_version() {
         for (lo, hi) in [(1i64, 10), (3, 5), (7, 7), (5, 3), (1, 100_000)] {
             assert_eq!(
-                Mint::new(sum_of_range(lo, hi)),
+                ModInt1000000007::new(sum_of_range(lo, hi)),
                 sum_of_arith_mod(lo as i128, hi as i128)
             );
         }
@@ -630,12 +625,12 @@ mod tests {
     #[test]
     fn sum_of_geom_mod_agrees_with_naive() {
         let (a, r) = (5i64, 7i64);
-        let mut naive = Mint::new(0);
-        let mut term = Mint::new(a);
+        let mut naive = ModInt1000000007::new(0);
+        let mut term = ModInt1000000007::new(a);
         for n in 0..50 {
             assert_eq!(sum_of_geom_mod(a, r, n), naive, "n={n}");
             naive = naive + term;
-            term = term * Mint::new(r);
+            term = term * ModInt1000000007::new(r);
         }
     }
 
@@ -656,16 +651,16 @@ mod tests {
     fn comb_agrees_with_pascal() {
         let n_max = 30;
         let c = Comb::new(n_max);
-        let mut pascal = vec![vec![Mint::new(0); n_max + 1]; n_max + 1];
+        let mut pascal = vec![vec![ModInt1000000007::new(0); n_max + 1]; n_max + 1];
         for n in 0..=n_max {
-            pascal[n][0] = Mint::new(1);
+            pascal[n][0] = ModInt1000000007::new(1);
             for r in 1..=n {
                 pascal[n][r] = pascal[n - 1][r - 1] + pascal[n - 1][r];
             }
         }
         for n in 0..=n_max {
             for r in 0..=n_max {
-                let expected = if r <= n { pascal[n][r] } else { Mint::new(0) };
+                let expected = if r <= n { pascal[n][r] } else { ModInt1000000007::new(0) };
                 assert_eq!(c.comb(n, r), expected, "n={n} r={r}");
             }
         }
@@ -676,8 +671,8 @@ mod tests {
     fn perm_agrees_with_comb_times_factorial() {
         let c = Comb::new(100);
         for (n, r) in [(5usize, 2usize), (10, 0), (10, 10), (100, 37), (3, 5)] {
-            let fact_r = (1..=r.min(n)).fold(Mint::new(1), |acc, i| acc * Mint::new(i));
-            let expected = if r > n { Mint::new(0) } else { c.comb(n, r) * fact_r };
+            let fact_r = (1..=r.min(n)).fold(ModInt1000000007::new(1), |acc, i| acc * ModInt1000000007::new(i));
+            let expected = if r > n { ModInt1000000007::new(0) } else { c.comb(n, r) * fact_r };
             assert_eq!(c.perm(n, r), expected, "n={n} r={r}");
         }
     }
