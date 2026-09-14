@@ -15,6 +15,7 @@ pub mod pair;
 pub mod refops;
 pub mod seq;
 pub mod string;
+pub mod subset;
 pub mod sumunionfind;
 pub mod unionfind;
 pub mod wunionfind;

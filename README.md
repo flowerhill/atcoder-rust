@@ -42,6 +42,7 @@ src/
 ├── refops.rs        # 値渡しの演算子 impl から参照版（&T op U など）を生やすマクロ
 ├── seq.rs           # 部分列判定 / 辞書順最小の部分列（smallest_subsequence）/ 順列列挙 / 連長圧縮（run_length）
 ├── string.rs        # 回文判定など
+├── subset.rs        # 部分集合の列挙（半分全列挙の下ごしらえ: subset_sums_by_count）
 ├── sumunionfind.rs  # 和の制約 x_a + x_b = c 用の符号付き Union-Find（SumUnionFind）
 ├── unionfind.rs     # Union-Find
 └── wunionfind.rs    # 重み付き Union-Find（差 x_j - x_i = w）
