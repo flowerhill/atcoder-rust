@@ -37,6 +37,7 @@ src/
 ├── imos.rs          # いもす法（1 次元 imos_1d / 2 次元 imos_2d（閉矩形）・imos_2d_half_open（半開矩形）・逐次加算用の Imos2D）
 ├── io.rs            # 出力ヘルパ（yn / print_lines / タプルの出力 format_tuples・print_tuples / format_grid・print_grid）
 ├── lazyseg.rs       # 遅延セグメント木（ac-library-rs の LazySegtree）用の作用（区間 chmax + 区間 max: ChmaxMax）
+├── lis.rs           # 最長増加部分列（各位置で終わる LIS 長: lis_lengths / 1 本の復元（添字）: lis_indices。Reverse / (x, i) で包んで減少・広義にも使う）
 ├── math.rs          # Integer トレイト / 数列和（sum_of_arith・sum_of_range・sum_of_geom）/ mod 10^9+7（sum_of_arith_mod・sum_of_geom_mod・Comb: 戻り値は ac-library-rs の ModInt1000000007）/ 素数・約数（sieve・distinct_prime_factor_counts・factorize・divisors）/ 桁変換
 ├── pair.rs          # Pair<T>（成分ごとの加減算）
 ├── refops.rs        # 値渡しの演算子 impl から参照版（&T op U など）を生やすマクロ
