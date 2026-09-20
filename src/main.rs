@@ -26,7 +26,7 @@ fn solve() -> u64 {
 fn main() {
     input! {}
 
-    println!("{}", solve());
+    // println!("{}", solve());
 }
 
 #[cfg(test)]
