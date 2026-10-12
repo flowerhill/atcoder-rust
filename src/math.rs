@@ -30,7 +30,7 @@
 //! この module の `sum_of_arith_mod` / `sum_of_geom_mod` / `Comb` も同じ型を返すので、
 //! 呼ぶ側で付けた別名でそのまま受け取れる。
 
-use ac_library::ModInt1000000007;
+use ac_library::{ModInt1000000007, RemEuclidU32};
 use std::ops::{
     Add, AddAssign, BitAnd, BitOr, Div, DivAssign, Mul, MulAssign, Rem, RemAssign, Shl, Shr, Sub,
     SubAssign,
@@ -174,22 +174,34 @@ pub fn sum_of_geom<T: Integer>(a: T, r: T, n: usize) -> T {
 }
 
 /// 整数区間 [lo, hi] の総和 (lo+hi)(hi-lo+1)/2 を mod 10^9+7 で返す（`lo > hi` なら 0）。
-/// 積を `i128` で厳密に計算してから `ModInt1000000007` に落とすので、`lo`, `hi` が 10^18 規模でも
-/// オーバーフローしない（積は最大 ~2*10^36 で i128 に収まる）。逆元は不要。
+/// `Integer` を実装する任意の整数型で使える（計算幅は呼び出し側の型で決まる）。
+/// `lo`, `hi` を先に `ModInt1000000007` へ落としてから掛け、2 では逆元で割るので、
+/// `T` 上で計算するのは要素数 `hi - lo + 1` だけ。これが `T` に収まれば溢れない
+/// （`u64` で 10^18 規模でもよい。`lo > hi` を先に弾くので符号なし型でもアンダーフローしない）。
+///
+/// 制約の `RemEuclidU32` は ac-library-rs のトレイトで、`ModInt1000000007::new` が引数に要求するもの。
+/// 「法で割った 0 以上の余り（ユークリッド除算の余り）を `u32` で返せる」ことを表し、
+/// i8〜i128 / u8〜u128 / isize / usize の全整数型に実装されている。`Integer` だけでは
+/// `ModInt1000000007::new(lo)` に渡せる保証がないので併記している。
+/// 負の値も `[0, MOD)` に寄せられるので、負を含む区間もそのまま扱える。
 ///
 /// ```
 /// use atcoder_rust::math::sum_of_arith_mod;
 /// assert_eq!(sum_of_arith_mod(1, 10).val(), 55);
-/// assert_eq!(sum_of_arith_mod(3, 5).val(), 12);
-/// assert_eq!(sum_of_arith_mod(7, 7).val(), 7); // 単点
-/// assert_eq!(sum_of_arith_mod(5, 3).val(), 0); // 空区間
-/// assert_eq!(sum_of_arith_mod(1, 1_000_000_000_000_000_000).val(), 1225); // 10^18 でも溢れない
+/// assert_eq!(sum_of_arith_mod(3usize, 5).val(), 12); // usize
+/// assert_eq!(sum_of_arith_mod(7u32, 7).val(), 7); // 単点
+/// assert_eq!(sum_of_arith_mod(5u64, 3).val(), 0); // 空区間（符号なしでも安全）
+/// assert_eq!(sum_of_arith_mod(-3i64, 3).val(), 0); // 負を含む区間
+/// assert_eq!(sum_of_arith_mod(1u64, 1_000_000_000_000_000_000).val(), 1225); // 10^18 でも u64 のまま
+/// assert_eq!(sum_of_arith_mod(1i128, 1_000_000_000_000_000_000).val(), 1225); // i128 でも同じ
 /// ```
-pub fn sum_of_arith_mod(lo: i128, hi: i128) -> ModInt1000000007 {
+pub fn sum_of_arith_mod<T: Integer + RemEuclidU32>(lo: T, hi: T) -> ModInt1000000007 {
     if lo > hi {
         ModInt1000000007::new(0)
     } else {
-        ModInt1000000007::new((lo + hi) * (hi - lo + 1) / 2)
+        let count = hi - lo + T::ONE;
+        (ModInt1000000007::new(lo) + ModInt1000000007::new(hi)) * ModInt1000000007::new(count)
+            / ModInt1000000007::new(2)
     }
 }
 
