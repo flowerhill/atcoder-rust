@@ -563,7 +563,10 @@ mod tests {
     #[case(3, -2, 4, 0)] // 公差が負で総和 0
     fn sum_of_arith_works(#[case] a: i64, #[case] d: i64, #[case] n: usize, #[case] expected: i64) {
         assert_eq!(sum_of_arith(a, d, n), expected);
-        assert_eq!(sum_of_arith(a, d, n), (0..n as i64).map(|i| a + d * i).sum());
+        assert_eq!(
+            sum_of_arith(a, d, n),
+            (0..n as i64).map(|i| a + d * i).sum()
+        );
     }
 
     // n(n-1) が u64 を溢れる大きさでも、先に 2 で約分するので答えは正しい
@@ -629,7 +632,12 @@ mod tests {
     #[case(1, 2, 0, 0)] // 項数 0
     #[case(1, 2, 100, 976_371_284)] // (2^100 - 1) mod MOD：pow が効く長さ
     #[case(-1, 2, 3, 1_000_000_000)] // 初項が負でも [0, MOD) に寄る（= MOD - 7）
-    fn sum_of_geom_mod_works(#[case] a: i64, #[case] r: i64, #[case] n: usize, #[case] expected: u32) {
+    fn sum_of_geom_mod_works(
+        #[case] a: i64,
+        #[case] r: i64,
+        #[case] n: usize,
+        #[case] expected: u32,
+    ) {
         assert_eq!(sum_of_geom_mod(a, r, n).val(), expected);
     }
 
@@ -672,7 +680,11 @@ mod tests {
         }
         for n in 0..=n_max {
             for r in 0..=n_max {
-                let expected = if r <= n { pascal[n][r] } else { ModInt1000000007::new(0) };
+                let expected = if r <= n {
+                    pascal[n][r]
+                } else {
+                    ModInt1000000007::new(0)
+                };
                 assert_eq!(c.comb(n, r), expected, "n={n} r={r}");
             }
         }
@@ -683,8 +695,14 @@ mod tests {
     fn perm_agrees_with_comb_times_factorial() {
         let c = Comb::new(100);
         for (n, r) in [(5usize, 2usize), (10, 0), (10, 10), (100, 37), (3, 5)] {
-            let fact_r = (1..=r.min(n)).fold(ModInt1000000007::new(1), |acc, i| acc * ModInt1000000007::new(i));
-            let expected = if r > n { ModInt1000000007::new(0) } else { c.comb(n, r) * fact_r };
+            let fact_r = (1..=r.min(n)).fold(ModInt1000000007::new(1), |acc, i| {
+                acc * ModInt1000000007::new(i)
+            });
+            let expected = if r > n {
+                ModInt1000000007::new(0)
+            } else {
+                c.comb(n, r) * fact_r
+            };
             assert_eq!(c.perm(n, r), expected, "n={n} r={r}");
         }
     }

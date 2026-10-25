@@ -108,7 +108,10 @@ mod tests {
     #[test]
     fn run_length_preserves_total_len() {
         let seq = ['o', 'o', 'x', 'o', 'x', 'x', 'x'];
-        assert_eq!(run_length(&seq).iter().map(|&(_, c)| c).sum::<usize>(), seq.len());
+        assert_eq!(
+            run_length(&seq).iter().map(|&(_, c)| c).sum::<usize>(),
+            seq.len()
+        );
     }
 
     #[rstest]

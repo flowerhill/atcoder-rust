@@ -2,8 +2,8 @@ use crate::cmp::chmin;
 use itertools::Itertools;
 use num::traits::Zero;
 use std::cmp::Reverse;
-use std::ops::Add;
 use std::collections::{BinaryHeap, VecDeque};
+use std::ops::Add;
 
 /// 無向辺のリストから n 頂点の隣接リストを作る(0-indexed)。各辺を両方向に張る。
 ///
@@ -361,7 +361,9 @@ mod tests {
         assert_eq!(order[0], 0);
         assert_eq!(parent, vec![usize::MAX, 0, 1, 0]);
         // order 上で親は子より前
-        let pos: Vec<usize> = (0..4).map(|v| order.iter().position(|&x| x == v).unwrap()).collect();
+        let pos: Vec<usize> = (0..4)
+            .map(|v| order.iter().position(|&x| x == v).unwrap())
+            .collect();
         for v in 1..4 {
             assert!(pos[parent[v]] < pos[v], "parent of {} must come first", v);
         }
@@ -425,12 +427,7 @@ mod tests {
     #[case(1, vec![None, Some(0), Some(2), Some(3)])]
     fn dijkstra_shortest_paths(#[case] start: usize, #[case] expected: Vec<Option<i64>>) {
         // 0->1(1), 1->2(2), 2->3(1), 0->2(5)
-        let g = vec![
-            vec![(1, 1i64), (2, 5)],
-            vec![(2, 2)],
-            vec![(3, 1)],
-            vec![],
-        ];
+        let g = vec![vec![(1, 1i64), (2, 5)], vec![(2, 2)], vec![(3, 1)], vec![]];
         assert_eq!(dijkstra(&g, start), expected);
     }
 
