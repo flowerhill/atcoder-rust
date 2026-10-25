@@ -60,11 +60,79 @@ impl<T: Ord> UpperBound<T> for [T] {
     }
 }
 
+/// 昇順ソート済みスライスに対する「境界の要素」の取得。
+///
+/// `lower_bound` / `upper_bound` が返すのは「最初に条件を満たす位置 = 条件を満たす個数」で、
+/// 「条件を満たす側の最後の要素」を指したいときは `- 1` が必要になる。その off-by-one を
+/// 吸収し、`>= x` / `> x` / `< x` / `<= x` の 4 方向を同じ形で引けるようにする。
+///
+/// Haskell 版テンプレートの `lookupGEIdxA` / `lookupGTIdxA` / `lookupLTIdxA` / `lookupLEIdxA`
+/// と同じ意味。Haskell の `boundGEA` 等は範囲外を `succ ub` / `pred lb` の番兵で返すが、
+/// `usize` に `-1` が無いので `Option` で表す。
+///
+/// 実装は `lower_bound` / `upper_bound` の上に乗るので、両者を supertrait に置いて
+/// 「`Bound` を実装する型は必ず両方を実装している」ことをコンパイラに検査させている。
+///
+/// ```
+/// use atcoder_rust::bsearch::Bound;
+///
+/// let v = vec![1, 3, 5, 7, 9];
+/// assert_eq!(v.bound_ge(&4), Some(2)); // 5 の位置
+/// assert_eq!(v.bound_ge(&10), None);
+/// assert_eq!(v.bound_gt(&5), Some(3)); // 7 の位置
+/// assert_eq!(v.bound_gt(&9), None);
+/// assert_eq!(v.bound_lt(&5), Some(1)); // 3 の位置
+/// assert_eq!(v.bound_lt(&1), None);
+/// assert_eq!(v.bound_le(&5), Some(2)); // 5 の位置
+/// assert_eq!(v.bound_le(&0), None);
+///
+/// // 値そのものが欲しいときは添字で引く
+/// assert_eq!(v.bound_le(&6).map(|i| v[i]), Some(5));
+///
+/// // supertrait なので、`Bound` の境界だけで lower_bound / upper_bound も呼べる
+/// fn count_between<T: Ord, S: Bound<T> + ?Sized>(s: &S, lo: &T, hi: &T) -> usize {
+///     s.upper_bound(hi) - s.lower_bound(lo)
+/// }
+/// assert_eq!(count_between(&v[..], &3, &7), 3); // 3, 5, 7 の 3 個
+/// ```
+pub trait Bound<T>: LowerBound<T> + UpperBound<T> {
+    /// `x` 以上の値が最初に現れる位置（無ければ `None`）。
+    fn bound_ge(&self, x: &T) -> Option<usize>;
+    /// `x` より大きい値が最初に現れる位置（無ければ `None`）。
+    fn bound_gt(&self, x: &T) -> Option<usize>;
+    /// `x` より小さい値が最後に現れる位置（無ければ `None`）。
+    fn bound_lt(&self, x: &T) -> Option<usize>;
+    /// `x` 以下の値が最後に現れる位置（無ければ `None`）。
+    fn bound_le(&self, x: &T) -> Option<usize>;
+}
+
+impl<T: Ord> Bound<T> for [T] {
+    fn bound_ge(&self, x: &T) -> Option<usize> {
+        let i = self.lower_bound(x);
+        (i < self.len()).then_some(i)
+    }
+
+    fn bound_gt(&self, x: &T) -> Option<usize> {
+        let i = self.upper_bound(x);
+        (i < self.len()).then_some(i)
+    }
+
+    fn bound_lt(&self, x: &T) -> Option<usize> {
+        // lower_bound = 「x 未満の個数」なので、その 1 つ手前が最後の x 未満
+        self.lower_bound(x).checked_sub(1)
+    }
+
+    fn bound_le(&self, x: &T) -> Option<usize> {
+        // upper_bound = 「x 以下の個数」なので、その 1 つ手前が最後の x 以下
+        self.upper_bound(x).checked_sub(1)
+    }
+}
+
 /// `neighbors` が返す片側の要素 `(添字, 値)`。端をはみ出す側は `None`。
 pub type Neighbor<'a, T> = Option<(usize, &'a T)>;
 
 /// 昇順ソート済みスライスから、`x` を挟む前後の要素を取り出す操作。
-pub trait Neighbors<T> {
+pub trait Neighbors<T>: Bound<T> {
     /// `(x 未満で最大の要素, x 以上で最小の要素)` を `(添字, 値)` の組で返す。
     /// 端をはみ出す側は `None`（`x` が全要素より小さい / 大きい場合）。
     ///
@@ -84,10 +152,10 @@ pub trait Neighbors<T> {
 
 impl<T: Ord> Neighbors<T> for [T] {
     fn neighbors(&self, x: &T) -> (Neighbor<'_, T>, Neighbor<'_, T>) {
-        let i = self.lower_bound(x);
+        // 左は「x 未満で最後」、右は「x 以上で最初」= Bound の 2 方向そのもの
         (
-            i.checked_sub(1).map(|j| (j, &self[j])),
-            self.get(i).map(|v| (i, v)),
+            self.bound_lt(x).map(|i| (i, &self[i])),
+            self.bound_ge(x).map(|i| (i, &self[i])),
         )
     }
 }
@@ -153,6 +221,138 @@ mod tests {
         let v: Vec<i32> = vec![];
         assert_eq!(v.lower_bound(x), 0);
         assert_eq!(v.upper_bound(x), 0);
+    }
+
+    // 重複がある列。ge/lt は重複の先頭側、gt/le は末尾側を境界にする
+    #[rstest]
+    #[case(2, Some(1), Some(4), Some(0), Some(3))]
+    #[case(1, Some(0), Some(1), None, Some(0))] // 先頭と一致 → lt は範囲外
+    #[case(5, Some(5), None, Some(4), Some(5))] // 末尾と一致 → gt は範囲外
+    #[case(4, Some(5), Some(5), Some(4), Some(4))] // 存在しない値は前後で挟む
+    #[case(0, Some(0), Some(0), None, None)] // 全要素より小さい
+    #[case(9, None, None, Some(5), Some(5))] // 全要素より大きい
+    fn bound_cases(
+        #[case] x: i32,
+        #[case] ge: Option<usize>,
+        #[case] gt: Option<usize>,
+        #[case] lt: Option<usize>,
+        #[case] le: Option<usize>,
+    ) {
+        let v = vec![1, 2, 2, 2, 3, 5];
+        assert_eq!(v.bound_ge(&x), ge);
+        assert_eq!(v.bound_gt(&x), gt);
+        assert_eq!(v.bound_lt(&x), lt);
+        assert_eq!(v.bound_le(&x), le);
+    }
+
+    // 全要素が同じ値 → ge/le は両端を指し、gt/lt は範囲外
+    #[test]
+    fn bound_on_all_equal() {
+        let v = vec![7, 7, 7];
+        assert_eq!(v.bound_ge(&7), Some(0));
+        assert_eq!(v.bound_le(&7), Some(2));
+        assert_eq!(v.bound_gt(&7), None);
+        assert_eq!(v.bound_lt(&7), None);
+    }
+
+    // 空スライスでは 4 方向すべて None（checked_sub が 0 - 1 で落ちないこと）
+    #[test]
+    fn bound_on_empty() {
+        let v: Vec<i32> = vec![];
+        assert_eq!(v.bound_ge(&1), None);
+        assert_eq!(v.bound_gt(&1), None);
+        assert_eq!(v.bound_lt(&1), None);
+        assert_eq!(v.bound_le(&1), None);
+    }
+
+    // 累積和に対する用途: 先頭の番兵 0 があるので bound_le は必ず Some を返す
+    #[test]
+    fn bound_le_on_cumsum() {
+        let sa = vec![0u64, 22, 52]; // 安い順 0/1/2 個の合計
+        assert_eq!(sa.bound_le(&110), Some(2));
+        assert_eq!(sa.bound_le(&51), Some(1));
+        assert_eq!(sa.bound_le(&0), Some(0)); // 予算 0 でも「0 個」は買える
+    }
+
+    // 既存 API との関係: lt/le は lower/upper の 1 つ手前、ge/gt は範囲内のときだけ一致
+    #[rstest]
+    #[case(0)]
+    #[case(2)]
+    #[case(4)]
+    #[case(9)]
+    fn bound_agrees_with_lower_upper(#[case] x: i32) {
+        let v = vec![1, 2, 2, 2, 3, 5];
+        assert_eq!(v.bound_lt(&x), v.lower_bound(&x).checked_sub(1));
+        assert_eq!(v.bound_le(&x), v.upper_bound(&x).checked_sub(1));
+        assert_eq!(
+            v.bound_ge(&x),
+            (v.lower_bound(&x) < v.len()).then(|| v.lower_bound(&x))
+        );
+        assert_eq!(
+            v.bound_gt(&x),
+            (v.upper_bound(&x) < v.len()).then(|| v.upper_bound(&x))
+        );
+    }
+
+    // neighbors は (bound_lt, bound_ge) と同じ境界を指す
+    #[rstest]
+    #[case(0)]
+    #[case(2)]
+    #[case(4)]
+    #[case(9)]
+    fn bound_agrees_with_neighbors(#[case] x: i32) {
+        let v = vec![1, 2, 2, 2, 3, 5];
+        let (lower, upper) = v.neighbors(&x);
+        assert_eq!(lower.map(|(i, _)| i), v.bound_lt(&x));
+        assert_eq!(upper.map(|(i, _)| i), v.bound_ge(&x));
+    }
+
+    // 全探索との照合。`Bound` は lower_bound / upper_bound の上に実装されているので、
+    // このテストが 6 関数すべての正しさをまとめて担保する。
+    // 空列・1 要素・重複・全要素同値・負値・連番を、範囲外の x まで含めて総当たりする。
+    #[rstest]
+    #[case(vec![])]
+    #[case(vec![0])]
+    #[case(vec![1, 1])]
+    #[case(vec![1, 2, 2, 2, 3, 5])]
+    #[case(vec![-3, -1, 0, 0, 4])]
+    #[case(vec![7, 7, 7, 7, 7])]
+    #[case(vec![0, 1, 2, 3, 4, 5, 6, 7])]
+    fn bounds_agree_with_linear_scan(#[case] v: Vec<i32>) {
+        for x in -6..=10 {
+            // lower_bound / upper_bound は「条件を満たす個数」
+            assert_eq!(
+                v.lower_bound(&x),
+                v.iter().filter(|&&e| e < x).count(),
+                "lower_bound: v={v:?}, x={x}"
+            );
+            assert_eq!(
+                v.upper_bound(&x),
+                v.iter().filter(|&&e| e <= x).count(),
+                "upper_bound: v={v:?}, x={x}"
+            );
+            // bound_* は「条件を満たす側の端の位置」
+            assert_eq!(
+                v.bound_ge(&x),
+                v.iter().position(|&e| e >= x),
+                "bound_ge: v={v:?}, x={x}"
+            );
+            assert_eq!(
+                v.bound_gt(&x),
+                v.iter().position(|&e| e > x),
+                "bound_gt: v={v:?}, x={x}"
+            );
+            assert_eq!(
+                v.bound_lt(&x),
+                v.iter().rposition(|&e| e < x),
+                "bound_lt: v={v:?}, x={x}"
+            );
+            assert_eq!(
+                v.bound_le(&x),
+                v.iter().rposition(|&e| e <= x),
+                "bound_le: v={v:?}, x={x}"
+            );
+        }
     }
 
     #[rstest]
