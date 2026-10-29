@@ -107,6 +107,32 @@ for i in 1..=k {
 
 法が 10^9+7 以外なら `ac_library::{ModInt998244353, DynamicModInt}`、単発の累乗・逆元だけなら `ac_library::{pow_mod, inv_mod}`（`inv_mod` は合成数の法でも可）を使う。二項係数は `math::Comb`（`ModInt1000000007` を返すので、上の別名でそのまま受けられる）。
 
+### 二分探索は `Bound` の 4 方向を優先する
+
+**ソート済み列への二分探索は `bsearch::Bound` の `bound_ge` / `bound_gt` / `bound_lt` / `bound_le` で書き、`lower_bound` / `upper_bound` に `- 1` を付ける形は避ける。** `lower_bound` / `upper_bound` が返すのは「最初に条件を満たす位置 = 条件を満たす個数」なので、「条件を満たす側の最後の要素」を指すには `- 1` が必要で、off-by-one と usize の桁借りを踏みやすい。`Bound` の 4 つは探している要素の位置を直接返し、無ければ `None` を返すので、番兵値（`len` や `n + 1`）を解釈する必要もない。
+
+- 対応は `bound_ge` = 「x 以上の最初」、`bound_gt` = 「x より大きい最初」、`bound_lt` = 「x より小さい最後」、`bound_le` = 「x 以下の最後」。
+- **不等号は問題文の言い回しに合わせて選ぶ**（「K 個以上」なら `bound_ge`、「K 個未満」なら `bound_lt`）。渡す値を `- 1` して向きを合わせない。
+- 見つからないケースは `None` で分岐する（`let Some(i) = ... else { break; };`）。
+- 「条件を満たす個数」そのものが欲しいときは `lower_bound` / `upper_bound` を使う（区間内の個数は `upper_bound(hi) - lower_bound(lo)`）。
+- 値の大小では表せない単調述語（答えで二分探索するなど）は `bsearch::bisect` / `bisect_rev`、または標準の `partition_point` を使う。
+
+```rust
+use atcoder_rust::bsearch::Bound;
+
+// 良い例: 「'a' が a 個以上の最小 r」「'b' が b 個未満の最大 r」がそのまま読める
+let Some(lo) = pa.bound_ge(&(pa[l - 1] + a)) else {
+    break;
+};
+let hi = pb
+    .bound_lt(&(pb[l - 1] + b))
+    .expect("solve: pb[l-1] 自身が pb[l-1] + b 未満なので必ず存在する");
+
+// 避ける: off-by-one の `- 1` と、番兵値 n+1 の解釈が読み手に残る
+let lo = pa.lower_bound(&(pa[l - 1] + a)); // 見つからないと n+1
+let hi = pb.upper_bound(&(pb[l - 1] + b - 1)) - 1;
+```
+
 ### 引数の受け渡し（move / 借用）
 
 シグネチャが意図（消費する / 読むだけ / 書き換える）を表すように渡し方を選ぶ。**参照は無用に使わない**: 呼び出し元がその後も値を使うときだけ借用し、そうでなければ値渡し（move）にする。
