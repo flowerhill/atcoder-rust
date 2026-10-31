@@ -29,6 +29,7 @@ pub fn bisect_rev<T: Integer>(l: T, r: T, mut f: impl FnMut(&T) -> bool) -> (T, 
 /// 昇順ソート済みスライスに対する lower bound 操作。
 pub trait LowerBound<T> {
     /// `x` 以上の値が最初に現れる位置を返す(無ければ `len` = 挿入位置)。
+    /// 返る数は「`x` 未満」の要素の個数でもある(指しているのは要素ではなく境界)。
     fn lower_bound(&self, x: &T) -> usize;
 }
 
@@ -46,6 +47,7 @@ impl<T: Ord> LowerBound<T> for [T] {
 /// 昇順ソート済みスライスに対する upper bound 操作。
 pub trait UpperBound<T> {
     /// `x` より大きい値が最初に現れる位置を返す(無ければ `len` = 挿入位置)。
+    /// 返る数は「`x` 以下」の要素の個数でもある(指しているのは要素ではなく境界)。
     fn upper_bound(&self, x: &T) -> usize;
 }
 
@@ -86,6 +88,17 @@ impl<T: Ord> UpperBound<T> for [T] {
 /// assert_eq!(v.bound_le(&5), Some(2)); // 5 の位置
 /// assert_eq!(v.bound_le(&0), None);
 ///
+/// // 重複があるとき。ge/lt は重複の先頭側、le/gt は末尾側の外を指す
+/// let d = vec![1, 2, 2, 2, 5];
+/// assert_eq!(d.bound_lt(&2), Some(0)); // 重複の 1 つ手前の 1
+/// assert_eq!(d.bound_ge(&2), Some(1)); // 重複する 2 の先頭
+/// assert_eq!(d.bound_le(&2), Some(3)); // 重複する 2 の末尾
+/// assert_eq!(d.bound_gt(&2), Some(4)); // 重複の 1 つ先の 5
+///
+/// // 存在しない値では lt/le と ge/gt が入れ替わる（区間に 1 つも入らない合図）
+/// assert_eq!(d.bound_le(&3), Some(3)); // 3 以下の最後 = 2
+/// assert_eq!(d.bound_ge(&3), Some(4)); // 3 以上の最初 = 5
+///
 /// // 値そのものが欲しいときは添字で引く
 /// assert_eq!(v.bound_le(&6).map(|i| v[i]), Some(5));
 ///
@@ -96,13 +109,17 @@ impl<T: Ord> UpperBound<T> for [T] {
 /// assert_eq!(count_between(&v[..], &3, &7), 3); // 3, 5, 7 の 3 個
 /// ```
 pub trait Bound<T>: LowerBound<T> + UpperBound<T> {
-    /// `x` 以上の値が最初に現れる位置（無ければ `None`）。
+    /// 「`x` 以上」の値が現れる最小の添字（無ければ `None`）。
+    /// 重複があれば `x` と等しい並びの先頭を指す。範囲内なら `lower_bound(x)` と同じ値。
     fn bound_ge(&self, x: &T) -> Option<usize>;
-    /// `x` より大きい値が最初に現れる位置（無ければ `None`）。
+    /// 「`x` より大きい」値が現れる最小の添字（無ければ `None`）。
+    /// `x` と等しい要素は飛ばすので、重複の 1 つ先を指す。範囲内なら `upper_bound(x)` と同じ値。
     fn bound_gt(&self, x: &T) -> Option<usize>;
-    /// `x` より小さい値が最後に現れる位置（無ければ `None`）。
+    /// 「`x` より小さい」値が現れる最大の添字（無ければ `None`）。
+    /// `x` と等しい要素は飛ばすので、重複の 1 つ手前を指す。`lower_bound(x) - 1` と同じ値。
     fn bound_lt(&self, x: &T) -> Option<usize>;
-    /// `x` 以下の値が最後に現れる位置（無ければ `None`）。
+    /// 「`x` 以下」の値が現れる最大の添字（無ければ `None`）。
+    /// 重複があれば `x` と等しい並びの末尾を指す。`upper_bound(x) - 1` と同じ値。
     fn bound_le(&self, x: &T) -> Option<usize>;
 }
 
